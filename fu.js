@@ -1,5 +1,6 @@
 var createServer = require("http").createServer;
 var sys = require("sys");
+var posix = require("posix")
 DEBUG = false;
 
 var fu = exports;
@@ -69,7 +70,7 @@ fu.staticHandler = function (filename) {
     }
 
     sys.puts("loading " + filename + "...");
-    var promise = process.fs.cat(filename, encoding);
+    var promise = posix.cat(filename, encoding);
 
     promise.addCallback(function (data) {
       body = data;

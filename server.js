@@ -115,10 +115,13 @@ fu.listen(PORT, HOST);
 fu.get("/", fu.staticHandler("index.html"));
 fu.get("/style.css", fu.staticHandler("style.css"));
 fu.get("/client.js", fu.staticHandler("client.js"));
+fu.get("/client.proto.js", fu.staticHandler("client.proto.js"));
 fu.get("/jquery-1.2.6.min.js", fu.staticHandler("jquery-1.2.6.min.js"));
+fu.get("/prototype.s2.js", fu.staticHandler("prototype.s2.js"));
 
 
 fu.get("/who", function (req, res) {
+  sys.puts("/who request");
   var nicks = [];
   for (var id in sessions) {
     if (!sessions.hasOwnProperty(id)) continue;
@@ -129,6 +132,7 @@ fu.get("/who", function (req, res) {
 });
 
 fu.get("/join", function (req, res) {
+  sys.puts("/join request");
   var nick = req.uri.params["nick"];
   if (nick == null || nick.length == 0) {
     res.simpleJSON(400, {error: "Bad nick."});
@@ -157,6 +161,7 @@ fu.get("/part", function (req, res) {
 });
 
 fu.get("/recv", function (req, res) {
+  sys.puts("/recv request");
   if (!req.uri.params.since) {
     res.simpleJSON(400, { error: "Must supply since parameter" });
     return;
@@ -177,6 +182,7 @@ fu.get("/recv", function (req, res) {
 });
 
 fu.get("/send", function (req, res) {
+  sys.puts("/send request")
   var id = req.uri.params.id;
   var text = req.uri.params.text;
 
@@ -191,3 +197,5 @@ fu.get("/send", function (req, res) {
   channel.appendMessage(session.nick, "msg", text);
   res.simpleJSON(200, {});
 });
+
+sys.puts("got to end of request definitions");
