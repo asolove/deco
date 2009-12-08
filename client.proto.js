@@ -168,10 +168,10 @@ function longPoll (data) {
         transmission_errors += 1;
         setTimeout(longPoll, 10*1000);
       }
-    , onSuccess: function (transport, data) {
+    , onSuccess: function (res) {
         transmission_errors = 0;
-        console.log("onSuccess in Ajax request", data)
-        //longPoll(data);
+        var data = res.responseText.evalJSON();
+        longPoll(data);
       }
     });
 }
@@ -242,12 +242,13 @@ document.observe("dom:loaded", function() {
     if (e.keyCode != 13 /* Return */) return;
     var msg = $("entry").value.replace("\n", "");
     if (!util.isBlank(msg)) send(msg);
-    $("entry").writeAttribute({value:""})
+    $("entry").value = "";
   });
 
   $("usersLink").observe("click", outputUsers);
 
-  $("connectButton").observe('click', function () {
+  $("connectButton").observe('click', function (e) {
+    e.stop();
     showLoad();
     var nick = $("nickInput").value;
 
@@ -267,7 +268,6 @@ document.observe("dom:loaded", function() {
     { parameters: { nick: nick}
     , method: 'get'
     , onError: function() {
-        alert("error connecting to server");
         showConnect();
       }
     , onSuccess: onConnect
