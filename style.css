@@ -1,15 +1,13 @@
 body {
   padding: 0;
   margin: 0;
+  overflow:hidden;
+  height:100%;
+  font: 12px/1.2 Arial;
 }
 body, #entry {
-  background: #22252a;
+  background: #222;
   color: #eee;
-}
-body, table {
-  font-family: DejaVu Sans Mono, fixed; 
-  font-size: 14pt;
-  line-height: 150%;
 }
 tr,td,table {
   padding: 0;
@@ -27,7 +25,7 @@ a { text-decoration: none; color: #888; }
 a:hover { text-decoration: underline; color: #aaa; }
 
 #loading, #connect {
-  background: #22252a;
+  background: #222;
   position: fixed;
   top: 0;
   left: 0;
@@ -40,62 +38,21 @@ a:hover { text-decoration: underline; color: #aaa; }
 #connect { z-index: 10000001; }
 
 #loading p, #connect fieldset  {
-  font-family: DejaVu Sans Mono, fixed; 
   width: 30em;
   border: 0;
 }
 
 #toolbar {
-  position: fixed;
   color: #fff;
-  width: 100%; 
-  bottom: 0;
-  background: #733;
+  background-color:#111;
+  position:fixed;
+  top:0px;
+  width:100%;
 }
-
-#entry {
-  width: 100%;
-  font-size: inherit;
-  padding: 1em;
-  margin: 0;
-  border-width: 0;
-  outline-width: 0;
-  clear: both;
-}
-
-#log {
-  display: block;
-  /* enough padding to clear the toolbar.. is there a better way to do this? */
-  padding-bottom: 5.1em; 
-  background: inherit;
-  overflow: hidden;
-}
-
-/* not very important info */
-.notice td, .join td, .part td, .message .date { color: #555; }
-.error td { color: #933; }
-.personal .nick, .notice .nick { color: #cd5; }
-
-.message {
-  margin: 0.1em 0;
-}
-
-.message td {
-  vertical-align: top;
-}
-
-.nick { 
-  font-weight: bold;
-  padding: 0 1em 0 0.5em;
-}
-
-.nick a {
-  color: inherit;
-}
-
 #toolbar ul {
   margin: 0;
   padding: 0;
+  padding-left:1em;
   list-style: none;
 }
 
@@ -107,4 +64,55 @@ a:hover { text-decoration: underline; color: #aaa; }
 
 #usersLink {
   color: inherit;
+}
+#entry {
+  width: 100%;
+  font-size: inherit;
+  padding: 1em;
+  margin: 0;
+  border-width: 0;
+  outline-width: 0;
+  clear: both;
+}
+
+#chat {
+  position:absolute;
+  right:0px;
+  top:40px;
+  width:23%;
+  height:100%;
+  
+  background: #111;
+  border:1px solid #ccc;
+}
+
+#log {
+  display: block;
+  padding: 3em 1em;
+}
+
+/* not very important info */
+.notice, .join, .part, .message .date { color: #555; }
+.error { color: #933; }
+.personal .nick, .notice .nick { color: #cd5; }
+.date { display: none;}
+
+.nick:after { 
+  content: ": ";
+}
+
+.nick a {
+  color: inherit;
+}
+
+
+/* collage  */
+#collage { 
+  position:absolute;
+  top: 2px;
+  left:2px;
+  width:75%; 
+  height:98%; 
+  background-color:#111;
+  border: 1px solid #ccc;
 }

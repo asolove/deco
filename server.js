@@ -115,9 +115,7 @@ fu.listen(PORT, HOST);
 fu.get("/", fu.staticHandler("index.html"));
 fu.get("/style.css", fu.staticHandler("style.css"));
 fu.get("/client.js", fu.staticHandler("client.js"));
-fu.get("/client.proto.js", fu.staticHandler("client.proto.js"));
-fu.get("/jquery-1.2.6.min.js", fu.staticHandler("jquery-1.2.6.min.js"));
-fu.get("/prototype.s2.js", fu.staticHandler("prototype.s2.js"));
+fu.get("/prototype.s2.min.js", fu.staticHandler("prototype.s2.min.js"));
 
 
 fu.get("/who", function (req, res) {

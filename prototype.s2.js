@@ -1,1 +1,0 @@
-../scripty2/dist/release/prototype.s2.js

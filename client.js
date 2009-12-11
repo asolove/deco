@@ -1,3 +1,20 @@
+S2.enableMultitouchSupport = true;
+
+Element.addMethods({
+  getInnerText: function(element) {
+    element = $(element);
+    return (element.innerText || element.textContent);
+  },
+  setInnerText: function(element, value) {
+    element = $(element);
+    if (element.innerText)
+      element.innerText = value;
+    else
+      element.textContent = value;
+    return element;
+  }
+});
+
 var CONFIG = { debug: false
              , nick: "#"   // set in onConnect
              , id: null    // set in onConnect
@@ -9,7 +26,7 @@ var nicks = [];
 function updateUsersLink ( ) {
   var t = nicks.length.toString() + " user";
   if (nicks.length != 1) t += "s";
-  $("#usersLink").text(t);
+  $("usersLink").update(t);
 }
 
 function userJoin(nick, timestamp) {
@@ -64,7 +81,7 @@ util = {
 
 function scrollDown () {
   window.scrollBy(0, 100000000000000000);
-  $("#entry").focus();
+  $("entry").focus();
 }
 
 function addMessage (from, text, time, _class) {
@@ -79,11 +96,11 @@ function addMessage (from, text, time, _class) {
     time = new Date(time);
   }
 
-  var messageElement = $(document.createElement("table"));
+  var messageElement = $(document.createElement("div"));
 
-  messageElement.addClass("message");
+  messageElement.addClassName("message");
   if (_class)
-    messageElement.addClass(_class);
+    messageElement.addClassName(_class);
 
   // sanitize
   text = util.toStaticHTML(text);
@@ -91,20 +108,19 @@ function addMessage (from, text, time, _class) {
   // See if it matches our nick?
   var nick_re = new RegExp(CONFIG.nick);
   if (nick_re.exec(text))
-    messageElement.addClass("personal");
+    messageElement.addClassName("personal");
 
   // replace URLs with links
   text = text.replace(util.urlRE, '<a target="_blank" href="$&">$&</a>');
 
-  var content = '<tr>'
-              + '  <td class="date">' + util.timeString(time) + '</td>'
-              + '  <td class="nick">' + util.toStaticHTML(from) + '</td>'
-              + '  <td class="msg-text">' + text  + '</td>'
-              + '</tr>'
+  var content = '<span class="date">' + util.timeString(time) + '</span>'
+              + '<span class="nick">' + util.toStaticHTML(from) + '</span>'
+              + '<span class="msg-text">' + text  + '</span>'
               ;
-  messageElement.html(content);
+              
+  messageElement.innerHTML = content;
 
-  $("#log").append(messageElement);
+  $("log").insert(messageElement);
   scrollDown();
 }
 
@@ -144,54 +160,55 @@ function longPoll (data) {
     }
   }
 
-  $.ajax({ cache: false
-         , type: "GET"
-         , url: "/recv"
-         , dataType: "json"
-         , data: { since: CONFIG.last_message_time, id: CONFIG.id }
-         , error: function () {
-             addMessage("", "long poll error. trying again...", new Date(), "error");
-             transmission_errors += 1;
-             setTimeout(longPoll, 10*1000);
-           }
-         , success: function (data) {
-             transmission_errors = 0;
-             longPoll(data);
-           }
-         });
+
+  new Ajax.Request("/recv",
+    { method: 'get'
+    , parameters: { since: CONFIG.last_message_time, id: CONFIG.id }
+    , onError: function () {
+        addMessage("", "long poll error. trying again...", new Date(), "error");
+        transmission_errors += 1;
+        setTimeout(longPoll, 10*1000);
+      }
+    , onSuccess: function (res) {
+        transmission_errors = 0;
+        var data = res.responseText.evalJSON();
+        longPoll(data);
+      }
+    });
 }
 
 function send(msg) {
   if (CONFIG.debug === false) {
     // XXX should be POST
-    jQuery.get("/send", {id: CONFIG.id, text: msg}, function (data) { }, "json");
+    new Ajax.Request("/send", { method: 'get', parameters: {id: CONFIG.id, text:msg}})
   }
 }
 
 function showConnect () {
-  $("#connect").show();
-  $("#loading").hide();
-  $("#toolbar").hide();
-  $("#nickInput").focus();
+  $("connect").show();
+  $("loading").hide();
+  $("connected").hide();
+  $("nickInput").focus();
 }
 
 function showLoad () {
-  $("#connect").hide();
-  $("#loading").show();
-  $("#toolbar").hide();
+  $("connect").hide();
+  $("loading").show();
+  $("connected").hide();
 }
 
 function showChat (nick) {
-  $("#toolbar").show();
-  $("#entry").focus();
+  $("connected").show();
+  $("entry").focus();
 
-  $("#connect").hide();
-  $("#loading").hide();
+  $("connect").hide();
+  $("loading").hide();
 
   scrollDown();
 }
 
-function onConnect (session) {
+function onConnect (res) {
+  var session = res.responseText.evalJSON();
   if (session.error) {
     alert("error connecting: " + session.error);
     showConnect();
@@ -211,27 +228,30 @@ function outputUsers () {
 }
 
 function who () {
-  jQuery.get("/who", {}, function (data, status) {
-    if (status != "success") return;
-    nicks = data.nicks;
-    outputUsers();
-  }, "json");
+  new Ajax.Request("/who", {
+    onSuccess: function(transport, data) {
+      if(status != 'success') return;
+      nicks = data.nicks
+      outputUsers();
+    }
+  });
 }
 
-$(document).ready(function() {
+document.observe("dom:loaded", function() {
 
-  $("#entry").keypress(function (e) {
+  $("entry").observe("keypress", function (e) {
     if (e.keyCode != 13 /* Return */) return;
-    var msg = $("#entry").attr("value").replace("\n", "");
+    var msg = $("entry").value.replace("\n", "");
     if (!util.isBlank(msg)) send(msg);
-    $("#entry").attr("value", ""); // clear the entry field.
+    $("entry").value = "";
   });
 
-  $("#usersLink").click(outputUsers);
+  $("usersLink").observe("click", outputUsers);
 
-  $("#connectButton").click(function () {
+  $("connectButton").observe('click', function (e) {
+    e.stop();
     showLoad();
-    var nick = $("#nickInput").attr("value");
+    var nick = $("nickInput").value;
 
     if (nick.length > 50) {
       alert("Nick too long. 50 character max.");
@@ -244,42 +264,52 @@ $(document).ready(function() {
       showConnect();
       return false;
     }
+    
+    new Ajax.Request("/join",  
+    { parameters: { nick: nick}
+    , method: 'get'
+    , onError: function() {
+        showConnect();
+      }
+    , onSuccess: onConnect
+    });
 
-    $.ajax({ cache: false
-           , type: "GET" // XXX should be POST
-           , dataType: "json"
-           , url: "/join"
-           , data: { nick: nick }
-           , error: function () {
-               alert("error connecting to server");
-               showConnect();
-             }
-           , success: onConnect
-           });
     return false;
   });
 
   // update the clock every second
   setInterval(function () {
     var now = new Date();
-    $("#currentTime").text(util.timeString(now));
+    $("currentTime").setInnerText(util.timeString(now));
   }, 1000);
 
   if (CONFIG.debug) {
-    $("#loading").hide();
-    $("#connect").hide();
+    $("loading").hide();
+    $("connect").hide();
     scrollDown();
     return;
   }
 
-  // remove fixtures
-  $("#log table").remove();
-
   longPoll();
-
   showConnect();
-});
+  
+  // collage
+  var collage = $("collage"), chat = $("chat"), z=1, pos=[2, 2, 0, 1];
+  
+  collage.observe("manipulate:update", function(event){
+    collage.style.cssText += 
+      ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';
+    chat.style.cssText += 'z-index:'+z+';';
+    collage.transform({ scale: event.memo.scale });
+    collage._x = pos[0]+event.memo.panX;
+    collage._y = pos[1]+event.memo.panY;
+    event.stop();
+  });
+  
+  //collage.transform({ rotation: pos[2]});
+  //collage.morph("left:"+pos[0]+"px;top:"+pos[1]+"px;");
+}); // end dom:load
 
-$(window).unload(function () {
-  jQuery.get("/part", {id: CONFIG.id}, function (data) { }, "json");
+$(document).observe("unload", function () {
+  new Ajax.Request("/part", { parameters: {id: CONFIG.id}});
 });

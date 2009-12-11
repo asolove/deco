@@ -1,3 +1,5 @@
+S2.enableMultitouchSupport = true;
+
 Element.addMethods({
   getInnerText: function(element) {
     element = $(element);
@@ -94,7 +96,7 @@ function addMessage (from, text, time, _class) {
     time = new Date(time);
   }
 
-  var messageElement = $(document.createElement("table"));
+  var messageElement = $(document.createElement("div"));
 
   messageElement.addClassName("message");
   if (_class)
@@ -111,12 +113,11 @@ function addMessage (from, text, time, _class) {
   // replace URLs with links
   text = text.replace(util.urlRE, '<a target="_blank" href="$&">$&</a>');
 
-  var content = '<tr>'
-              + '  <td class="date">' + util.timeString(time) + '</td>'
-              + '  <td class="nick">' + util.toStaticHTML(from) + '</td>'
-              + '  <td class="msg-text">' + text  + '</td>'
-              + '</tr>'
+  var content = '<span class="date">' + util.timeString(time) + '</span>'
+              + '<span class="nick">' + util.toStaticHTML(from) + '</span>'
+              + '<span class="msg-text">' + text  + '</span>'
               ;
+              
   messageElement.innerHTML = content;
 
   $("log").insert(messageElement);
@@ -186,18 +187,18 @@ function send(msg) {
 function showConnect () {
   $("connect").show();
   $("loading").hide();
-  $("toolbar").hide();
+  $("connected").hide();
   $("nickInput").focus();
 }
 
 function showLoad () {
   $("connect").hide();
   $("loading").show();
-  $("toolbar").hide();
+  $("connected").hide();
 }
 
 function showChat (nick) {
-  $("toolbar").show();
+  $("connected").show();
   $("entry").focus();
 
   $("connect").hide();
@@ -289,13 +290,24 @@ document.observe("dom:loaded", function() {
     return;
   }
 
-  // remove fixtures
-  $$("#log table").each(function(e) { e.remove() });
-
   longPoll();
-
   showConnect();
-});
+  
+  // collage
+  var collage = $("collage"), z=1, pos=[100, 100, 0, 1];
+  
+  collage.observe("manipulate:update", function(event){
+    collage.style.cssText += 
+      ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';
+    collage.transform({ rotation: pos[2]+event.memo.rotation, scale: event.memo.scale });
+    collage._x = pos[0]+event.memo.panX;
+    collage._y = pos[1]+event.memo.panY;
+    event.stop();
+  });
+  
+  collage.transform({ rotation: pos[2]});
+  collage.morph("left:"+pos[0]+"px;top:"+pos[1]+"px;");
+}); // end dom:load
 
 $(document).observe("unload", function () {
   new Ajax.Request("/part", { parameters: {id: CONFIG.id}});
