@@ -4,8 +4,6 @@ body {
   overflow:hidden;
   height:100%;
   font: 12px/1.2 Arial;
-}
-body, #entry {
   background: #222;
   color: #eee;
 }
@@ -44,8 +42,8 @@ a:hover { text-decoration: underline; color: #aaa; }
 
 #toolbar {
   color: #fff;
-  background-color:#111;
-  position:fixed;
+  background-color:#222;
+  position:absolute;
   top:0px;
   width:100%;
 }
@@ -73,35 +71,37 @@ a:hover { text-decoration: underline; color: #aaa; }
   border-width: 0;
   outline-width: 0;
   clear: both;
+  color: #eee;
+  background-color: #111;
 }
 
 #chat {
-  position:absolute;
+  position:fixed;
   right:0px;
-  top:40px;
+  top:0px;
   width:23%;
   height:100%;
   
-  background: #111;
-  border:1px solid #ccc;
+  background: #222;
+  border-left:1px solid #ccc;
 }
 
 #log {
   display: block;
-  padding: 3em 1em;
+  padding: 5em 1em 0;
 }
 
 /* not very important info */
 .notice, .join, .part, .message .date { color: #555; }
 .error { color: #933; }
-.personal .nick, .notice .nick { color: #cd5; }
+.personal .user, .notice .nick { color: #cd5; }
 .date { display: none;}
 
-.nick:after { 
+.user:after { 
   content: ": ";
 }
 
-.nick a {
+.user a {
   color: inherit;
 }
 
@@ -115,4 +115,14 @@ a:hover { text-decoration: underline; color: #aaa; }
   height:98%; 
   background-color:#111;
   border: 1px solid #ccc;
+}
+
+#collage input, #collage span, #collage textarea {
+  position:absolute;
+  background: #222;
+  border-width:0px;
+  text-align:center;
+  color:#fff;
+  min-width:20px;
+  min-height:10px;
 }

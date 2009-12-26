@@ -1,4 +1,5 @@
-Demo for node.js http://tinyclouds.org/node
+Demo of a real-time collage and chat server.
 
-to run
-$ /usr/local/bin/node server.js
+Run with:
+
+node server.js

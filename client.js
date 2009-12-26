@@ -1,64 +1,6 @@
-S2.enableMultitouchSupport = true;
-
-Element.addMethods({
-  getInnerText: function(element) {
-    element = $(element);
-    return (element.innerText || element.textContent);
-  },
-  setInnerText: function(element, value) {
-    element = $(element);
-    if (element.innerText)
-      element.innerText = value;
-    else
-      element.textContent = value;
-    return element;
-  }
-});
-
-var CONFIG = { debug: false
-             , nick: "#"   // set in onConnect
-             , id: null    // set in onConnect
-             , last_message_time: 0
-             };
-
-var nicks = [];
-
-function updateUsersLink ( ) {
-  var t = nicks.length.toString() + " user";
-  if (nicks.length != 1) t += "s";
-  $("usersLink").update(t);
-}
-
-function userJoin(nick, timestamp) {
-  addMessage(nick, "joined", timestamp, "join");
-  for (var i = 0; i < nicks.length; i++)
-    if (nicks[i] == nick) return;
-  nicks.push(nick);
-  updateUsersLink();
-}
-
-function userPart(nick, timestamp) {
-  addMessage(nick, "left", timestamp, "part");
-  for (var i = 0; i < nicks.length; i++) {
-    if (nicks[i] == nick) {
-      nicks.splice(i,1)
-      break;
-    }
-  }
-  updateUsersLink();
-}
-
-// utility functions
-
+// Utilities
 util = {
   urlRE: /https?:\/\/([-\w\.]+)+(:\d+)?(\/([^\s]*(\?\S+)?)?)?/g, 
-
-  //  html sanitizer 
-  toStaticHTML: function(inputHtml) {
-    return inputHtml.replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;");
-  }, 
 
   zeroPad: function (digits, n) {
     n = n.toString();
@@ -72,244 +14,260 @@ util = {
     var hours = date.getHours().toString();
     return this.zeroPad(2, hours) + ":" + this.zeroPad(2, minutes);
   },
-
-  isBlank: function(text) {
-    var blank = /^\s*$/;
-    return (text.match(blank) !== null);
-  }
 };
 
-function scrollDown () {
-  window.scrollBy(0, 100000000000000000);
-  $("entry").focus();
+// Server communication
+var STATUS = {
+  user: "",
+  session_id: 0,
+  users: [],
+  room: "",
+  last_update_time: 0,
+  errors: 0
+};
+
+function processUpdates(data) {
+  if(data && data.messages) {
+    data.messages.each(function(update) {
+      if (update.time > STATUS.last_update_time)
+        STATUS.last_update_time = update.time
+      
+      myUpdate = update;
+      switch(update.type) {
+        // chat updates
+        case 'join':  chatJoin(update.user, update.time); break;
+        case 'msg':   chatMessage(update.user, update.time, update.text); break;
+        case 'leave': chatLeave(update.user, update.time); break;
+        // collage updates
+        case 'move':  collageMove(update); break;
+        case 'update':collageUpdate(update); break;
+        case 'new':   collageNew(update); break;
+        case 'delete':collageDelete(update); break;
+      }
+    })
+  }
 }
 
-function addMessage (from, text, time, _class) {
-  if (text === null)
+function getUpdates() {
+  if(STATUS.errors > 2)
     return;
+    
+  if(!STATUS.last_update_time)
+    getUsers();
 
-  if (time == null) {
-    // if the time is null or undefined, use the current time.
-    time = new Date();
-  } else if ((time instanceof Date) === false) {
-    // if it's a timestamp, interpret it
-    time = new Date(time);
-  }
-
-  var messageElement = $(document.createElement("div"));
-
-  messageElement.addClassName("message");
-  if (_class)
-    messageElement.addClassName(_class);
-
-  // sanitize
-  text = util.toStaticHTML(text);
-
-  // See if it matches our nick?
-  var nick_re = new RegExp(CONFIG.nick);
-  if (nick_re.exec(text))
-    messageElement.addClassName("personal");
-
-  // replace URLs with links
-  text = text.replace(util.urlRE, '<a target="_blank" href="$&">$&</a>');
-
-  var content = '<span class="date">' + util.timeString(time) + '</span>'
-              + '<span class="nick">' + util.toStaticHTML(from) + '</span>'
-              + '<span class="msg-text">' + text  + '</span>'
-              ;
-              
-  messageElement.innerHTML = content;
-
-  $("log").insert(messageElement);
-  scrollDown();
+  new Ajax.Request("/updates", {
+    method: 'get',
+    parameters: {id: STATUS.session_id, since: STATUS.last_update_time },
+    onError: function () {
+      STATUS.errors += 1;
+      addMessage("", "There was an error contacting the server.", new Date(), "error");
+      setTimeout(getUpdates, 10000);
+    },
+    onSuccess: function (res) {
+      STATUS.errors = 0;
+      processUpdates(res.responseText.evalJSON());
+      getUpdates();
+    }
+  });
 }
 
-var transmission_errors = 0;
-var first_poll = true;
+function getUsers () {
+  new Ajax.Request("/who", {
+    onSuccess: function(transport, data) {
+      if(STATUS != 'success') return;
+      STATUS.users = data.users
+      updateUsersList();
+    }
+  });
+}
 
-function longPoll (data) {
-  if (transmission_errors > 2) {
-    showConnect();
+function sendMessage(text) {
+  new Ajax.Request("/send", { method: 'get', parameters: {id: STATUS.session_id, room: STATUS.room, text: text}});
+}
+
+function sendJoin(user) {
+  new Ajax.Request("/join", {
+    parameters: { user: user, room: "demo"},
+    method: 'get',
+    onError: showLogin,
+    onSuccess: joinSuccess
+  });
+}
+
+function joinSuccess (res) {
+  var session = res.responseText.evalJSON();
+  if (session.error) {
+    alert("error connecting: " + session.error);
+    showLogin();
     return;
   }
-
-  if (data && data.messages) {
-    for (var i = 0; i < data.messages.length; i++) {
-      var message = data.messages[i];
-
-      if (message.timestamp > CONFIG.last_message_time)
-        CONFIG.last_message_time = message.timestamp;
-
-      switch (message.type) {
-        case "msg":
-          addMessage(message.nick, message.text, message.timestamp);
-          break;
-
-        case "join":
-          userJoin(message.nick, message.timestamp);
-          break;
-
-        case "part":
-          userPart(message.nick, message.timestamp);
-          break;
-      }
-    }
-    if (first_poll) {
-      first_poll = false;
-      who();
-    }
-  }
-
-
-  new Ajax.Request("/recv",
-    { method: 'get'
-    , parameters: { since: CONFIG.last_message_time, id: CONFIG.id }
-    , onError: function () {
-        addMessage("", "long poll error. trying again...", new Date(), "error");
-        transmission_errors += 1;
-        setTimeout(longPoll, 10*1000);
-      }
-    , onSuccess: function (res) {
-        transmission_errors = 0;
-        var data = res.responseText.evalJSON();
-        longPoll(data);
-      }
-    });
+  
+  STATUS.user = session.user;
+  STATUS.session_id = session.id;
+  
+  getUpdates();
+  showChat();
 }
 
-function send(msg) {
-  if (CONFIG.debug === false) {
-    // XXX should be POST
-    new Ajax.Request("/send", { method: 'get', parameters: {id: CONFIG.id, text:msg}})
-  }
+// Chat Actions
+function chatJoin(user, time) {
+  chatAddMessage(user, "joined", time);
+  STATUS.users.push(user);
+  updateUsersList();
 }
 
-function showConnect () {
+function chatLeave(user, time) {
+  chatAddMessage(user, "left", time);
+  STATUS.users = STATUS.users.without(user);
+  updateUsersList();
+}
+
+function chatMessage(user, time, text) {
+  chatAddMessage(user, text, time);
+}
+
+// Collage actions
+function collageMove(data){
+  if(data.user == STATUS.user) return;
+  
+};
+function collageUpdate(data){
+  if(data.user == STATUS.user) return;
+};
+function collageNew(data){
+  if(data.user == STATUS.user) return;
+  
+};
+function collageDelete(data){
+  if(data.user == STATUS.user) return;
+  
+};
+
+// Chat UI
+function chatAddMessage(user, text, time, _class) {
+  if(!text) return;
+  text = text.escapeHTML().replace(util.urlRE, '<a target="_blank" href="$&">$&</a>');
+  time = time ? new Date(time) : new Date();
+  
+  var message = new Element("div", { "class": "message " + _class + (user == STATUS.user ? " personal" : "")});
+  message.update('<span class="date">' + util.timeString(time) + '</span>'
+    + '<span class="user">' + user.escapeHTML() + '</span>'
+    + '<span class="msg-text">' + text  + '</span>');
+    
+  $("log").insert(message);
+}
+
+function updateUsersList ( ) {
+  $("usersLink").update(STATUS.users.length.toString() + " user" + (STATUS.users.length > 1 ? "s" : ""));
+}
+
+
+// UI States
+function showLogin () {
   $("connect").show();
   $("loading").hide();
   $("connected").hide();
-  $("nickInput").focus();
+  $("userInput").focus();
 }
 
-function showLoad () {
+function showLoad(){
   $("connect").hide();
   $("loading").show();
   $("connected").hide();
 }
 
-function showChat (nick) {
+function showChat(){
   $("connected").show();
   $("entry").focus();
 
   $("connect").hide();
   $("loading").hide();
-
-  scrollDown();
 }
 
-function onConnect (res) {
-  var session = res.responseText.evalJSON();
-  if (session.error) {
-    alert("error connecting: " + session.error);
-    showConnect();
-    return;
-  }
-
-  CONFIG.nick = session.nick;
-  CONFIG.id   = session.id;
-
-  showChat(CONFIG.nick);
-}
-
-function outputUsers () {
-  var nick_string = nicks.length > 0 ? nicks.join(", ") : "(none)";
-  addMessage("users:", nick_string, new Date(), "notice");
-  return false;
-}
-
-function who () {
-  new Ajax.Request("/who", {
-    onSuccess: function(transport, data) {
-      if(status != 'success') return;
-      nicks = data.nicks
-      outputUsers();
-    }
-  });
-}
-
+// Events
 document.observe("dom:loaded", function() {
 
   $("entry").observe("keypress", function (e) {
     if (e.keyCode != 13 /* Return */) return;
     var msg = $("entry").value.replace("\n", "");
-    if (!util.isBlank(msg)) send(msg);
+    if (!msg.blank()) sendMessage(msg);
     $("entry").value = "";
   });
-
-  $("usersLink").observe("click", outputUsers);
 
   $("connectButton").observe('click', function (e) {
     e.stop();
     showLoad();
-    var nick = $("nickInput").value;
+    var nick = $("userInput").value;
 
     if (nick.length > 50) {
       alert("Nick too long. 50 character max.");
-      showConnect();
+      showLogin();
       return false;
     }
 
     if (/[^\w_\-^!]/.exec(nick)) {
       alert("Bad character in nick. Can only have letters, numbers, and '_', '-', '^', '!'");
-      showConnect();
+      showLogin();
       return false;
     }
     
-    new Ajax.Request("/join",  
-    { parameters: { nick: nick}
-    , method: 'get'
-    , onError: function() {
-        showConnect();
-      }
-    , onSuccess: onConnect
-    });
+    sendJoin(nick);
 
     return false;
   });
-
-  // update the clock every second
-  setInterval(function () {
-    var now = new Date();
-    $("currentTime").setInnerText(util.timeString(now));
-  }, 1000);
-
-  if (CONFIG.debug) {
-    $("loading").hide();
-    $("connect").hide();
-    scrollDown();
-    return;
-  }
-
-  longPoll();
-  showConnect();
   
-  // collage
-  var collage = $("collage"), chat = $("chat"), z=1, pos=[2, 2, 0, 1];
+  showLogin();
+});
+
+
+// ***************
+// Collage portion
+// ***************
+
+// Globals
+S2.enableMultitouchSupport = true;
+var collage, chat, z = 1;
+
+// UI events
+function addCollageText(x, y) {
+  var input = new Element("input", { style: "left:"+x+"px; top:"+y+"px;"});
+  collage.insert(input);
+  input.focus();
+  input.observe("manipulate:update", function(event){
+    event.stop();
+    var s = collage._s; // scale of parent collage
+    input.style.cssText += 
+      ';z-index:'+(z++)+';left:'+(x+event.memo.panX/s)+'px;top:'+(y+event.memo.panY/s)+'px;';
+    input.transform({ rotation: event.memo.rotation, scale: event.memo.scale });
+    input._x = x+event.memo.panX;
+    input._y = y+event.memo.panY;
+    input.observe("dblclick", function(event){
+      input.focus();
+      event.stop();
+      return false;
+    });
+  });
+}
+
+$(document).observe("dom:loaded", function(){
+  collage = $("collage"), chat = $("chat");
+  var pos=[2, 2, 0, 1];
   
   collage.observe("manipulate:update", function(event){
+    collage.focus(); // blur text inputs
     collage.style.cssText += 
       ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';
     chat.style.cssText += 'z-index:'+z+';';
     collage.transform({ scale: event.memo.scale });
+    collage._s = event.memo.scale
     collage._x = pos[0]+event.memo.panX;
     collage._y = pos[1]+event.memo.panY;
     event.stop();
   });
-  
-  //collage.transform({ rotation: pos[2]});
-  //collage.morph("left:"+pos[0]+"px;top:"+pos[1]+"px;");
-}); // end dom:load
 
-$(document).observe("unload", function () {
-  new Ajax.Request("/part", { parameters: {id: CONFIG.id}});
+  collage.observe("dblclick", function(event){
+    event.stop();
+    addCollageText(event.offsetX, event.offsetY)
+  });
 });
+

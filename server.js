@@ -11,22 +11,22 @@ var channel = new function () {
   var messages = [];
   var callbacks = [];
 
-  this.appendMessage = function (nick, type, text) {
-    var m = { nick: nick
+  this.appendMessage = function (user, type, text) {
+    var m = { user: user
             , type: type // "msg", "join", "part"
             , text: text
-            , timestamp: (new Date()).getTime()
+            , time: (new Date()).getTime()
             };
 
     switch (type) {
       case "msg":
-        sys.puts("<" + nick + "> " + text);
+        sys.puts("<" + user + "> " + text);
         break;
       case "join":
-        sys.puts(nick + " join");
+        sys.puts(user + " join");
         break;
       case "part":
-        sys.puts(nick + " part");
+        sys.puts(user + " part");
         break;
     }
 
@@ -44,14 +44,14 @@ var channel = new function () {
     var matching = [];
     for (var i = 0; i < messages.length; i++) {
       var message = messages[i];
-      if (message.timestamp > since)
+      if (message.time > since)
         matching.push(message)
     }
 
     if (matching.length != 0) {
       callback(matching);
     } else {
-      callbacks.push({ timestamp: new Date(), callback: callback });
+      callbacks.push({ time: new Date(), callback: callback });
     }
   };
 
@@ -59,7 +59,7 @@ var channel = new function () {
   // they can hang around for at most 30 seconds.
   setInterval(function () {
     var now = new Date();
-    while (callbacks.length > 0 && now - callbacks[0].timestamp > 30*1000) {
+    while (callbacks.length > 0 && now - callbacks[0].time > 30*1000) {
       callbacks.shift().callback([]);
     }
   }, 1000);
@@ -67,28 +67,28 @@ var channel = new function () {
 
 var sessions = {};
 
-function createSession (nick) {
-  if (nick.length > 50) return null;
-  if (/[^\w_\-^!]/.exec(nick)) return null;
+function createSession (user) {
+  if (user.length > 50) return null;
+  if (/[^\w_\-^!]/.exec(user)) return null;
 
   for (var i in sessions) {
     var session = sessions[i];
-    if (session && session.nick === nick) return null;
+    if (session && session.user === user) return null;
   }
 
   var session = { 
-    nick: nick, 
+    user: user, 
 
     id: Math.floor(Math.random()*99999999999).toString(),
 
-    timestamp: new Date(),
+    time: new Date(),
 
     poke: function () {
-      session.timestamp = new Date();
+      session.time = new Date();
     },
 
     destroy: function () {
-      channel.appendMessage(session.nick, "part");
+      channel.appendMessage(session.user, "part");
       delete sessions[session.id];
     }
   };
@@ -104,7 +104,7 @@ setInterval(function () {
     if (!sessions.hasOwnProperty(id)) continue;
     var session = sessions[id];
 
-    if (now - session.timestamp > SESSION_TIMEOUT) {
+    if (now - session.time > SESSION_TIMEOUT) {
       session.destroy();
     }
   }
@@ -120,58 +120,51 @@ fu.get("/prototype.s2.min.js", fu.staticHandler("prototype.s2.min.js"));
 
 fu.get("/who", function (req, res) {
   sys.puts("/who request");
-  var nicks = [];
+  var users = [];
   for (var id in sessions) {
     if (!sessions.hasOwnProperty(id)) continue;
     var session = sessions[id];
-    nicks.push(session.nick);
+    users.push(session.user);
   }
-  res.simpleJSON(200, { nicks: nicks });
+  res.simpleJSON(200, { users: users });
 });
 
 fu.get("/join", function (req, res) {
   sys.puts("/join request");
-  var nick = req.uri.params["nick"];
-  if (nick == null || nick.length == 0) {
-    res.simpleJSON(400, {error: "Bad nick."});
+  var user = req.uri.params["user"];
+  if (user == null || user.length == 0) {
+    res.simpleJSON(400, {error: "Bad username."});
     return;
   }
-  var session = createSession(nick);
+  var session = createSession(user);
   if (session == null) {
-    res.simpleJSON(400, {error: "Nick in use"});
+    res.simpleJSON(400, {error: "Username in use"});
     return;
   }
 
-  //sys.puts("connection: " + nick + "@" + res.connection.remoteAddress);
-
-  channel.appendMessage(session.nick, "join");
-  res.simpleJSON(200, { id: session.id, nick: session.nick});
+  channel.appendMessage(session.user, "join");
+  res.simpleJSON(200, { id: session.id, user: session.user});
 });
 
 fu.get("/part", function (req, res) {
   var id = req.uri.params.id;
   var session;
-  if (id && sessions[id]) {
+  if(id && (sessions[id])) {
     session = sessions[id];
     session.destroy();
   }
   res.simpleJSON(200, { });
 });
 
-fu.get("/recv", function (req, res) {
-  sys.puts("/recv request");
+fu.get("/updates", function (req, res) {
+  sys.puts("/update request");
   if (!req.uri.params.since) {
     res.simpleJSON(400, { error: "Must supply since parameter" });
     return;
   }
-  var id = req.uri.params.id;
-  var session;
-  if (id && sessions[id]) {
-    session = sessions[id];
+  var id = req.uri.params.id, since = parseInt(req.uri.params.since, 10), session = false
+  if (id && (session = sessions[id]))
     session.poke();
-  }
-
-  var since = parseInt(req.uri.params.since, 10);
 
   channel.query(since, function (messages) {
     if (session) session.poke();
@@ -192,8 +185,11 @@ fu.get("/send", function (req, res) {
 
   session.poke();
 
-  channel.appendMessage(session.nick, "msg", text);
+  channel.appendMessage(session.user, "msg", text);
   res.simpleJSON(200, {});
 });
 
-sys.puts("got to end of request definitions");
+fu.get("/text", function(req, res) {
+  sys.puts("text request");
+  var id = req.uri.params.id, text 
+})
