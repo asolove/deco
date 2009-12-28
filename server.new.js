@@ -24,6 +24,14 @@ Room.prototype.inform=function(message){
   var observer;
   while(observer=this.observers.shift()) observer(message, this);
 };
+Room.prototype.messagesSince=function(time){
+  var r=[], ms = this.messages, ml = ms.length, m = false;
+  for(var i=0; i<ml; i++){
+    m = ms[i];
+    if(m.time > time) r.push(m);
+  }
+  return r;
+};
 
 /** The persistence system observes the room: **/
 
@@ -33,6 +41,7 @@ function Persistence(){
   this.rooms = [];
   return this;
 }
+
 Persistence.prototype.addMessage=function(message, room){
   
 };
@@ -73,7 +82,36 @@ function isLabelMessage(message){
 function isMessage(message){
   if(!(subject in message)) return false;
   if(!(time    in message)) return false;
-  if(!(user    in message)) return false;
   
   return(isChatMessage(message) || isPictureMessage(message) || isLabelMessage(message));
-}  
+}
+
+/**
+All outside access to the rooms is through the Authorization system
+
+The following requests are allowed:
+
+  - receive: 
+    requires valid session id, time, room_id that exists
+  - send:
+    requires valid session id, valid message, room_id that exists, message whose user has this session id
+**/
+
+function getOrWaitForUpdate(req, res){
+  var time, room = false, messages = false, send = respondMessages(req, res);
+  if(messages = room.query(time)){
+    send(messages);
+  } else {
+    room.addObserver(function(message, room){ send([message]); });
+  }
+}
+
+function respondMessages(req, res){
+  return function(messages){
+    res.simpleJSON(200, { messages: messages});
+  };
+}
+
+Auth = {
+  
+};
