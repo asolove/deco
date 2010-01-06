@@ -1,7 +1,7 @@
 HOST = null; // localhost
 PORT = 8001;
 
-var fu = require("./fu");
+var fu = require("../lib/fu");
 var sys = require("sys");
 
 var MESSAGE_BACKLOG = 200;
@@ -112,10 +112,10 @@ setInterval(function () {
 
 fu.listen(PORT, HOST);
 
-fu.get("/", fu.staticHandler("index.html"));
-fu.get("/style.css", fu.staticHandler("style.css"));
-fu.get("/client.js", fu.staticHandler("client.js"));
-fu.get("/prototype.s2.min.js", fu.staticHandler("prototype.s2.min.js"));
+fu.get("/", fu.staticHandler("public/index.html"));
+fu.get("/style.css", fu.staticHandler("public/style.css"));
+fu.get("/client.js", fu.staticHandler("public/client.js"));
+fu.get("/prototype.s2.min.js", fu.staticHandler("public/prototype.s2.min.js"));
 
 
 fu.get("/who", function (req, res) {
