@@ -3,9 +3,9 @@ Deco: The Code
   
 Deco is a visual workspace helping designers, coders and bosses to communicate.
 
-The state of each Deco room is a simple array of state changes in chronological order.
-Each state change is called a message. The room also has a list of observers. The room
-calls each observer with each state changed.
+The state of each Deco room is a simple array of state changes in chronological
+order.  Each state change is called a message. The room also has a list of
+observers. The room calls each observer with each state changed.
 **/
 function Room(){
   if(this["Room"]) return new Room();
@@ -22,7 +22,7 @@ Room.prototype.addObserver=function(obs){
 };
 Room.prototype.inform=function(message){
   var observer;
-  while(observer=this.observers.shift()) observer(message, this);
+  while((observer = this.observers.shift())) observer(message, this);
 };
 Room.prototype.messagesSince=function(time){
   var r=[], ms = this.messages, ml = ms.length, m = false;
@@ -60,13 +60,25 @@ Persistence.prototype.getRoom=function(room_id){
   }
 };
 
-/** 
-Messages relate to either the text chat or the visual collage. The data requirements are below.
-The positional members should be numbers, and the others, Strings.
 
-The room's chat status is linear: to have the full state of the room, you must have
-every chat message in order. The collage status changes, however, can be commuted. Three messages
-moving the same image can be commuted to a single message with the last position from those three.
+/** A Session represents one user's time in a Room. **/
+Persistence.prototype.createSession = function(user, room, res) {
+  this.getRoom(room).addObserver(userObserver(user, res));
+}
+
+function userObserver(user, res) {
+  var f = function(
+}
+
+/** 
+Messages relate to either the text chat or the visual collage. The data
+requirements are below.  The positional members should be numbers, and the
+others, Strings.
+
+The room's chat status is linear: to have the full state of the room, you must
+have every chat message in order. The collage status changes, however, can be
+commuted. Three messages moving the same image can be commuted to a single
+message with the last position from those three.
 **/
 
 function isChatMessage(message){
@@ -94,12 +106,13 @@ The following requests are allowed:
   - receive: 
     requires valid session id, time, room_id that exists
   - send:
-    requires valid session id, valid message, room_id that exists, message whose user has this session id
+    requires valid session id, valid message, room_id that exists,
+    message whose user has this session id
 **/
 
 function getOrWaitForUpdate(req, res){
   var time, room = false, messages = false, send = respondMessages(req, res);
-  if(messages = room.query(time)){
+  if((messages = room.query(time))){
     send(messages);
   } else {
     room.addObserver(function(message, room){ send([message]); });
@@ -115,3 +128,41 @@ function respondMessages(req, res){
 Auth = {
   
 };
+
+
+/** Server **/
+var fu = require("./fu");
+var sys = require("sys");
+
+// Static files
+fu.get("/", fu.staticHandler("index.html"));
+fu.get("/style.css", fu.staticHandler("style.css"));
+fu.get("/client.js", fu.staticHandler("client.js"));
+fu.get("/prototype.s2.min.js", fu.staticHandler("prototype.s2.min.js"));
+
+// Dynamic actions
+fu.get("/join", function(req, res){
+  var room = req.uri.params["room"],
+      user = req.uri.params["user"];
+  
+  res.simpleJSON(200, "Hello, room!");
+});
+
+fu.get("/send", function(req, res){
+  var room_id = req.uri.params["room_id"],
+      user_id = req.uri.params["user_id"];
+  res.simpleJSON(200, "Hello, send!");
+});
+
+fu.get("/receive", function(req, res){
+  res.simpleJSON(200, "Hello, receive!");
+});
+
+fu.get("/part", function(req, res){
+  res.simpleJSON(200, "Goodbye, world!");
+});
+
+// Server setup
+PORT = 8002;
+HOST = null;
+fu.listen(PORT, HOST);

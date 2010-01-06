@@ -131,7 +131,7 @@ fu.get("/who", function (req, res) {
 
 fu.get("/join", function (req, res) {
   sys.puts("/join request");
-  var user = req.uri.params["user"];
+  var user = req.url.params["user"];
   if (user == null || user.length == 0) {
     res.simpleJSON(400, {error: "Bad username."});
     return;
@@ -147,7 +147,7 @@ fu.get("/join", function (req, res) {
 });
 
 fu.get("/part", function (req, res) {
-  var id = req.uri.params.id;
+  var id = req.url.params.id;
   var session;
   if(id && (sessions[id])) {
     session = sessions[id];
@@ -158,11 +158,11 @@ fu.get("/part", function (req, res) {
 
 fu.get("/updates", function (req, res) {
   sys.puts("/update request");
-  if (!req.uri.params.since) {
+  if (!req.url.params.since) {
     res.simpleJSON(400, { error: "Must supply since parameter" });
     return;
   }
-  var id = req.uri.params.id, since = parseInt(req.uri.params.since, 10), session = false
+  var id = req.url.params.id, since = parseInt(req.url.params.since, 10), session = false;
   if (id && (session = sessions[id]))
     session.poke();
 
@@ -173,9 +173,9 @@ fu.get("/updates", function (req, res) {
 });
 
 fu.get("/send", function (req, res) {
-  sys.puts("/send request")
-  var id = req.uri.params.id;
-  var text = req.uri.params.text;
+  sys.puts("/send request");
+  var id = req.url.params.id;
+  var text = req.url.params.text;
 
   var session = sessions[id];
   if (!session || !text) {
@@ -191,5 +191,7 @@ fu.get("/send", function (req, res) {
 
 fu.get("/text", function(req, res) {
   sys.puts("text request");
-  var id = req.uri.params.id, text 
+  var id = req.url.params.id;
 })
+
+sys.puts("Got to end of defs");
