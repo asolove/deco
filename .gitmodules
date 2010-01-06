@@ -1,0 +1,3 @@
+[submodule "lib/spectacular"]
+	path = lib/spectacular
+	url = git://github.com/jcrosby/spectacular.git
