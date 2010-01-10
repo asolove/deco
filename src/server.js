@@ -5,7 +5,7 @@ var fu = require("../lib/fu");
 var sys = require("sys");
 
 var MESSAGE_BACKLOG = 200;
-var SESSION_TIMEOUT = 60 * 1000;
+var SESSION_TIMEOUT = 5 * 60 * 1000;
 
 var channel = new function () {
   var messages = [];

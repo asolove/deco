@@ -1,3 +1,5 @@
+"use strict";
+
 // Utilities
 util = {
   urlRE: /https?:\/\/([-\w\.]+)+(:\d+)?(\/([^\s]*(\?\S+)?)?)?/g, 
@@ -24,7 +26,7 @@ var STATUS = {
   room: "",
   last_update_time: 0,
   errors: 0, 
-  collageItems: []
+  collageItems: {}
 };
 
 function processUpdates(data) {
@@ -39,10 +41,10 @@ function processUpdates(data) {
         case 'msg':   chatMessage(update.user, update.time, update.message); break;
         case 'part':  chatPart(update.user, update.time); break;
         // collage updates
-        case 'move':  collageMove(update); break;
+        case 'move':   collageMove(update); break;
         case 'collage':collageUpdate(update); break;
-        case 'new':   collageNew(update); break;
-        case 'delete':collageDelete(update); break;
+        case 'new':    collageNew(update); break;
+        case 'delete': collageDelete(update); break;
       }
     });
   }
@@ -61,7 +63,7 @@ function getUpdates() {
     onError: function () {
       STATUS.errors += 1;
       addMessage("", "There was an error contacting the server.", new Date(), "error");
-      setTimeout(getUpdates, 10000);
+      setTimeout(getUpdates, 1000);
     },
     onSuccess: function (res) {
       STATUS.errors = 0;
@@ -103,7 +105,6 @@ function sendPart(user){
 
 function sendCollageUpdate(message){  
   message["type"] = "collage";
-  console.log("sending update:", message);
   new Ajax.Request("/collage", {
     parameters: { id: STATUS.session_id, message: JSON.stringify(message)},
     method: 'get'
@@ -134,7 +135,6 @@ function chatJoin(user, time) {
 }
 
 function chatPart(user, time) {
-  console.log("part called");
   chatAddMessage(user, "left", time);
   STATUS.users = STATUS.users.without(user);
   updateUsersList();
@@ -150,13 +150,14 @@ function collageMove(data){
   
 };
 function collageUpdate(data){
-  console.log("update:", data)
-  if(data.user == STATUS.user) return;
-  var item = false;
-  if(data.id in STATUS.collageItems) {
-    item = STATUS.collageItems[id];
+  data.message = JSON.parse(data.message);
+  if(data.user == STATUS.user) {
+    return false;
+  }
+  if(data.message.id in STATUS.collageItems) {
+    var input = STATUS.collageItems[data.message.id];
+    updateCollageText(input, data.message.text, data.message.pos);
   } else {
-    // make a new one
     addCollageText(data.message.id, data.message.text, data.message.pos);
   }
 };
@@ -257,6 +258,24 @@ S2.enableMultitouchSupport = true;
 var collage, chat, z = 1;
 
 // UI events
+
+function updateCollageText(input, text, pos){
+  if(pos && "x" in pos) {
+    var x = pos.x || input._x, y=pos.y || input._y, s=pos.s || 1, r=pos.r || 0;   
+    input.style.cssText += 
+      ';z-index:'+(z++)+';left:'+x+'px;top:'+y+'px;';
+    input.transform({ rotation: r1, scale: s1 });
+    input._x = x;
+    input._y = y;
+    input._r = r;
+    input._s = s;
+  }
+  if(text) {
+    input.value = text;
+  }
+  return false;
+};
+
 function addCollageText(id, text, pos) {
   if(!id)
     id = Math.uuid(10);
@@ -281,6 +300,8 @@ function addCollageText(id, text, pos) {
     input.transform({ rotation: r1, scale: s1 });
     input._x = x1;
     input._y = y1;
+    input._r = r1;
+    input._s = s1;
   });
   
   input.observe("manipulate:finished", function(event) {    
@@ -288,10 +309,8 @@ function addCollageText(id, text, pos) {
   });
   
   input.observe("change", function(event){
-    sendCollageUpdate({id:id, text: input.value});
+    sendCollageUpdate({id:id, text: input.value, pos: {x: input._x, y: input._y, r: input._r, s: input._s}});
   });
-  
-  sendCollageUpdate({id:id, pos:pos, text:text});
 }
 
 $(document).observe("dom:loaded", function(){
