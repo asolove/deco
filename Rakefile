@@ -1,11 +1,11 @@
-task :default => :spec
+task :default => :start
 
 task :spec do
   system 'node spec/tacular.js'
 end
 
 task :start do
-  system 'node src/server.new.js'
+  system 'node src/server.js'
 end
 
 task :repl do

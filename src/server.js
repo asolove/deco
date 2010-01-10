@@ -11,22 +11,25 @@ var channel = new function () {
   var messages = [];
   var callbacks = [];
 
-  this.appendMessage = function (user, type, text) {
+  this.appendMessage = function (user, type, message) {
     var m = { user: user
             , type: type // "msg", "join", "part"
-            , text: text
+            , message: message
             , time: (new Date()).getTime()
             };
 
     switch (type) {
       case "msg":
-        sys.puts("<" + user + "> " + text);
+        sys.puts("<" + user + "> " + message);
         break;
       case "join":
         sys.puts(user + " join");
         break;
       case "part":
         sys.puts(user + " part");
+        break;
+      case "collage":
+        sys.puts(user + "collage update: " + JSON.stringify(message));
         break;
     }
 
@@ -45,7 +48,7 @@ var channel = new function () {
     for (var i = 0; i < messages.length; i++) {
       var message = messages[i];
       if (message.time > since)
-        matching.push(message)
+        matching.push(message);
     }
 
     if (matching.length != 0) {
@@ -115,6 +118,7 @@ fu.listen(PORT, HOST);
 fu.get("/", fu.staticHandler("public/index.html"));
 fu.get("/style.css", fu.staticHandler("public/style.css"));
 fu.get("/client.js", fu.staticHandler("public/client.js"));
+fu.get("/math.uuid.js", fu.staticHandler("public/math.uuid.js"));
 fu.get("/prototype.s2.min.js", fu.staticHandler("public/prototype.s2.min.js"));
 
 
@@ -131,7 +135,7 @@ fu.get("/who", function (req, res) {
 
 fu.get("/join", function (req, res) {
   sys.puts("/join request");
-  var user = req.url.params["user"];
+  var user = req.uri.params["user"];
   if (user == null || user.length == 0) {
     res.simpleJSON(400, {error: "Bad username."});
     return;
@@ -147,7 +151,8 @@ fu.get("/join", function (req, res) {
 });
 
 fu.get("/part", function (req, res) {
-  var id = req.url.params.id;
+  sys.puts("part request");
+  var id = req.uri.params.id;
   var session;
   if(id && (sessions[id])) {
     session = sessions[id];
@@ -158,11 +163,12 @@ fu.get("/part", function (req, res) {
 
 fu.get("/updates", function (req, res) {
   sys.puts("/update request");
-  if (!req.url.params.since) {
+  sys.puts(JSON.stringify(req.uri.params));
+  if (!("since" in req.uri.params)) {
     res.simpleJSON(400, { error: "Must supply since parameter" });
     return;
   }
-  var id = req.url.params.id, since = parseInt(req.url.params.since, 10), session = false;
+  var id = req.uri.params.id, since = parseInt(req.uri.params.since, 10), session = false;
   if (id && (session = sessions[id]))
     session.poke();
 
@@ -174,8 +180,8 @@ fu.get("/updates", function (req, res) {
 
 fu.get("/send", function (req, res) {
   sys.puts("/send request");
-  var id = req.url.params.id;
-  var text = req.url.params.text;
+  var id = req.uri.params.id;
+  var text = req.uri.params.text;
 
   var session = sessions[id];
   if (!session || !text) {
@@ -189,9 +195,15 @@ fu.get("/send", function (req, res) {
   res.simpleJSON(200, {});
 });
 
-fu.get("/text", function(req, res) {
-  sys.puts("text request");
-  var id = req.url.params.id;
-})
-
-sys.puts("Got to end of defs");
+fu.get("/collage", function(req, res) {
+  var id = req.uri.params.id;
+  var session = sessions[id];
+  if(!session){
+    res.simpleJSON(400, { error: "No such session id"});
+    return;
+  }
+  
+  session.poke();
+  channel.appendMessage(session.user, "collage", req.uri.params.message);
+  res.simpleJSON(200, {});
+});

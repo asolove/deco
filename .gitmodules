@@ -1,3 +1,6 @@
 [submodule "lib/spectacular"]
 	path = lib/spectacular
 	url = git://github.com/jcrosby/spectacular.git
+[submodule "lib/sessions"]
+	path = lib/sessions
+	url = git://github.com/Miksago/node.js-sessions.git

@@ -13,7 +13,7 @@ util = {
     var minutes = date.getMinutes().toString();
     var hours = date.getHours().toString();
     return this.zeroPad(2, hours) + ":" + this.zeroPad(2, minutes);
-  },
+  }
 };
 
 // Server communication
@@ -23,28 +23,28 @@ var STATUS = {
   users: [],
   room: "",
   last_update_time: 0,
-  errors: 0
+  errors: 0, 
+  collageItems: []
 };
 
 function processUpdates(data) {
   if(data && data.messages) {
     data.messages.each(function(update) {
       if (update.time > STATUS.last_update_time)
-        STATUS.last_update_time = update.time
+        STATUS.last_update_time = update.time;
       
-      myUpdate = update;
       switch(update.type) {
         // chat updates
         case 'join':  chatJoin(update.user, update.time); break;
-        case 'msg':   chatMessage(update.user, update.time, update.text); break;
-        case 'leave': chatLeave(update.user, update.time); break;
+        case 'msg':   chatMessage(update.user, update.time, update.message); break;
+        case 'part':  chatPart(update.user, update.time); break;
         // collage updates
         case 'move':  collageMove(update); break;
-        case 'update':collageUpdate(update); break;
+        case 'collage':collageUpdate(update); break;
         case 'new':   collageNew(update); break;
         case 'delete':collageDelete(update); break;
       }
-    })
+    });
   }
 }
 
@@ -75,7 +75,7 @@ function getUsers () {
   new Ajax.Request("/who", {
     onSuccess: function(transport, data) {
       if(STATUS != 'success') return;
-      STATUS.users = data.users
+      STATUS.users = data.users;
       updateUsersList();
     }
   });
@@ -93,6 +93,23 @@ function sendJoin(user) {
     onSuccess: joinSuccess
   });
 }
+
+function sendPart(user){
+  new Ajax.Request("/part", {
+    parameters: { id: STATUS.session_id},
+    method: 'get'
+  });
+}
+
+function sendCollageUpdate(message){  
+  message["type"] = "collage";
+  console.log("sending update:", message);
+  new Ajax.Request("/collage", {
+    parameters: { id: STATUS.session_id, message: JSON.stringify(message)},
+    method: 'get'
+  });
+}
+
 
 function joinSuccess (res) {
   var session = res.responseText.evalJSON();
@@ -116,7 +133,8 @@ function chatJoin(user, time) {
   updateUsersList();
 }
 
-function chatLeave(user, time) {
+function chatPart(user, time) {
+  console.log("part called");
   chatAddMessage(user, "left", time);
   STATUS.users = STATUS.users.without(user);
   updateUsersList();
@@ -132,7 +150,15 @@ function collageMove(data){
   
 };
 function collageUpdate(data){
+  console.log("update:", data)
   if(data.user == STATUS.user) return;
+  var item = false;
+  if(data.id in STATUS.collageItems) {
+    item = STATUS.collageItems[id];
+  } else {
+    // make a new one
+    addCollageText(data.message.id, data.message.text, data.message.pos);
+  }
 };
 function collageNew(data){
   if(data.user == STATUS.user) return;
@@ -186,6 +212,8 @@ function showChat(){
 
 // Events
 document.observe("dom:loaded", function() {
+  
+  Event.observe(window, "unload", sendPart);
 
   $("entry").observe("keypress", function (e) {
     if (e.keyCode != 13 /* Return */) return;
@@ -229,28 +257,45 @@ S2.enableMultitouchSupport = true;
 var collage, chat, z = 1;
 
 // UI events
-function addCollageText(x, y) {
-  var input = new Element("input", { style: "left:"+x+"px; top:"+y+"px;"});
+function addCollageText(id, text, pos) {
+  if(!id)
+    id = Math.uuid(10);
+  
+  var x = pos.x, y = pos.y, s = pos.s, r = pos.r;
+  
+  var input = new Element("input", { value: text, style: "left:"+x+"px; top:"+y+"px;"});
+  
   collage.insert(input);
+  input.transform({rotation: r, scale: s});
   input.focus();
+  STATUS.collageItems[id] = input;
+  
+  input.observe("dblclick", function() { event.stop(); input.focus(); });
+  
   input.observe("manipulate:update", function(event){
     event.stop();
-    var s = collage._s; // scale of parent collage
+    var s = collage._s, memo = event.memo;
+    var x1 = x + memo.panX/s, y1 = y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
     input.style.cssText += 
-      ';z-index:'+(z++)+';left:'+(x+event.memo.panX/s)+'px;top:'+(y+event.memo.panY/s)+'px;';
-    input.transform({ rotation: event.memo.rotation, scale: event.memo.scale });
-    input._x = x+event.memo.panX;
-    input._y = y+event.memo.panY;
-    input.observe("dblclick", function(event){
-      input.focus();
-      event.stop();
-      return false;
-    });
+      ';z-index:'+(z++)+';left:'+x1+'px;top:'+y1+'px;';
+    input.transform({ rotation: r1, scale: s1 });
+    input._x = x1;
+    input._y = y1;
   });
+  
+  input.observe("manipulate:finished", function(event) {    
+    sendCollageUpdate({id:id, pos:{x: x1, y: y1, r: r1, s: s1}, text:input.value});
+  });
+  
+  input.observe("change", function(event){
+    sendCollageUpdate({id:id, text: input.value});
+  });
+  
+  sendCollageUpdate({id:id, pos:pos, text:text});
 }
 
 $(document).observe("dom:loaded", function(){
-  collage = $("collage"), chat = $("chat");
+  collage = $("collage"); chat = $("chat");
   var pos=[2, 2, 0, 1];
   
   collage.observe("manipulate:update", function(event){
@@ -259,7 +304,7 @@ $(document).observe("dom:loaded", function(){
       ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';
     chat.style.cssText += 'z-index:'+z+';';
     collage.transform({ scale: event.memo.scale });
-    collage._s = event.memo.scale
+    collage._s = event.memo.scale;
     collage._x = pos[0]+event.memo.panX;
     collage._y = pos[1]+event.memo.panY;
     event.stop();
@@ -267,7 +312,7 @@ $(document).observe("dom:loaded", function(){
 
   collage.observe("dblclick", function(event){
     event.stop();
-    addCollageText(event.offsetX, event.offsetY)
+    addCollageText(undefined, "", {x:event.offsetX, y:event.offsetY, s:1, r:0});
   });
 });
 
