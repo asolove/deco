@@ -276,40 +276,48 @@ function updateCollageText(input, text, pos){
   return false;
 };
 
+function positionAndAddElement(node, pos){
+  node.style.cssText += ';z-index:'+(z++)+';left:'+pos.x+'px;top:'+pos.y+'px;';
+  node.transform({ rotation: pos.r, scale: pos.s });
+  collage.insert(node);
+  STATUS.collageItems[node.id] = node;
+}
+
+function addCollageImage(id, src, pos){
+  if(!id) id = Math.uuid(10);
+  var image = new Element("img", {src:src, id: id, height: 200});
+  positionAndAddElement(image, pos);
+  attachEvents(image, pos);
+}
+
 function addCollageText(id, text, pos) {
-  if(!id)
-    id = Math.uuid(10);
-  
-  var x = pos.x, y = pos.y, s = pos.s, r = pos.r;
-  
-  var input = new Element("input", { value: text, style: "left:"+x+"px; top:"+y+"px;"});
-  
-  collage.insert(input);
-  input.transform({rotation: r, scale: s});
+  if(!id) id = Math.uuid(10);
+  var input = new Element("input", { value: text, id: id});
+  positionAndAddElement(input, pos);
+  attachEvents(input, pos);
   input.focus();
-  STATUS.collageItems[id] = input;
   
-  input.observe("dblclick", function() { event.stop(); input.focus(); });
-  
-  input.observe("manipulate:update", function(event){
-    event.stop();
-    var s = collage._s, memo = event.memo;
-    var x1 = x + memo.panX/s, y1 = y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
-    input.style.cssText += 
-      ';z-index:'+(z++)+';left:'+x1+'px;top:'+y1+'px;';
-    input.transform({ rotation: r1, scale: s1 });
-    input._x = x1;
-    input._y = y1;
-    input._r = r1;
-    input._s = s1;
-  });
-  
-  input.observe("manipulate:finished", function(event) {    
-    sendCollageUpdate({id:id, pos:{x: x1, y: y1, r: r1, s: s1}, text:input.value});
-  });
-  
+  input.observe("dblclick", function(event) { event.stop(); input.focus(); });
   input.observe("change", function(event){
     sendCollageUpdate({id:id, text: input.value, pos: {x: input._x, y: input._y, r: input._r, s: input._s}});
+  });
+}
+
+
+function attachEvents(node, pos){
+  node.observe("manipulate:update", function(event){
+    event.stop();
+    var s = collage._s, memo = event.memo;
+    var x1 = pos.x + memo.panX/s, y1 = pos.y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
+    node.style.cssText += ';z-index:'+(z++)+';left:'+x1+'px;top:'+y1+'px;';
+    node.transform({ rotation: r1, scale: s1 });
+    node._x = x1;
+    node._y = y1;
+    node._r = r1;
+    node._s = s1;
+  });
+  node.observe("manipulate:finished", function(event) {    
+    sendCollageUpdate({id:id, pos:{x: x1, y: y1, r: r1, s: s1}});
   });
 }
 
@@ -321,7 +329,6 @@ $(document).observe("dom:loaded", function(){
     collage.focus(); // blur text inputs
     collage.style.cssText += 
       ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';
-    chat.style.cssText += 'z-index:'+z+';';
     collage.transform({ scale: event.memo.scale });
     collage._s = event.memo.scale;
     collage._x = pos[0]+event.memo.panX;
@@ -330,8 +337,34 @@ $(document).observe("dom:loaded", function(){
   });
 
   collage.observe("dblclick", function(event){
+    // FIXME: Firefox-only
+    if(event.element() != collage) return false;
+    var x = event.layerX, y = event.layerY;
+    addCollageText(undefined, "", {x:x, y:y, s:1, r:0});
     event.stop();
-    addCollageText(undefined, "", {x:event.offsetX, y:event.offsetY, s:1, r:0});
   });
+  
+  // File upload
+  collage.observe("dragover", function(event) {
+    event.stop();
+  }, true);
+  collage.observe("drop", function(event) {
+    console.log("drag drop");
+    event.stop();
+    console.log(event.dataTransfer);
+    handleDroppedFiles(event.dataTransfer);
+  }, true);
 });
+
+function handleDroppedFiles(dataTransfer) {
+	var files = $A(dataTransfer.files);
+	files.each(function(file){
+	  if(file.fileSize < 1000000) {
+		  var img = addCollageImage(undefined, file.getAsDataURL(), {x: 10, y:10, r: 0, s:1});
+	  } else {
+  		alert("file is too big, needs to be below 1mb");
+	  }
+	});
+}
+	
 
