@@ -117,7 +117,7 @@ a:hover { text-decoration: underline; color: #aaa; }
   border: 1px solid #ccc;
 }
 
-#collage input, #collage span, #collage textarea {
+#collage input, #collage span, #collage textarea{
   position:absolute;
   background: #222;
   border-width:0px;
@@ -126,3 +126,5 @@ a:hover { text-decoration: underline; color: #aaa; }
   min-width:20px;
   min-height:10px;
 }
+
+#collage img { position:absolute; }
