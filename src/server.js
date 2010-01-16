@@ -7,44 +7,40 @@ var sys = require("sys");
 var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 5 * 60 * 1000;
 
+function Room(messages){
+  this.messages = messages || [];
+  this.callbacks = [];
+}
+
+Room.prototype.addMessage = function(message){
+  var data;
+  message.time = (new Date()).getTime();
+  sys.puts(sys.inspect(message));
+
+  this.messages.push(message);
+  data = JSON.stringify(message);
+  this.callbacks.forEach(function(c){c(data)});
+}
+
+Room.prototype.query = function(since, callback){
+  var res = [];
+  this.messages.forEach(function(m){
+    if(m.time > since){
+      res.push(m);
+    }
+  });
+  if(res.length > 0){
+    callback(res);
+  } else {
+    this.callbacks.push({callback: callback, time: new Date()});
+  }
+}
+
 var channel = new function () {
-  var messages = [];
-  var callbacks = [];
-
-  this.appendMessage = function (user, type, message) {
-    var m = { user: user
-            , type: type // "msg", "join", "part"
-            , message: message
-            , time: (new Date()).getTime()
-            };
-
-    switch (type) {
-      case "msg":
-        sys.puts("<" + user + "> " + message);
-        break;
-      case "join":
-        sys.puts(user + " join");
-        break;
-      case "part":
-        sys.puts(user + " part");
-        break;
-      case "collage":
-        sys.puts(user + "collage update: " + JSON.stringify(message));
-        break;
-    }
-
-    messages.push( m );
-
-    while (callbacks.length > 0) {
-      callbacks.shift().callback([m]);
-    }
-
-    while (messages.length > MESSAGE_BACKLOG)
-      messages.shift();
-  };
 
   this.query = function (since, callback) {
     var matching = [];
+    
     for (var i = 0; i < messages.length; i++) {
       var message = messages[i];
       if (message.time > since)
