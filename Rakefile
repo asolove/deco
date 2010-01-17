@@ -5,7 +5,7 @@ task :spec do
 end
 
 task :start do
-  system 'node src/server.js'
+  system 'rlwrap node src/server.js'
 end
 
 task :repl do

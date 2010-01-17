@@ -1,45 +1,25 @@
-<html>
-  <head>
-    <link rel="stylesheet" href="style.css" type="text/css"/>
-    <script src="prototype.s2.min.js" type="text/javascript"></script>
-    <script src="client.js" type="text/javascript"></script>
-    <script src="math.uuid.js" type="text/javascript"></script>
-    <title>node chat</title>
-  </head>
-  <body>
-    <div id="app">
-      <div id="connect">
-        <form action="#">
-          <fieldset> 
-            <p>
-              This is a collaborative collage chat room. The source code is:
-              <a href="http://github.com/asolove/node_chat/">here</a>.
-            </p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8"/>
+	<title>Communicating Design Inspiration: Deco</title>
+  <link rel="stylesheet" href="style.css" type="text/css"/>
+  <script src="prototype.s2.min.js" type="text/javascript"></script>
+  <script src="client.js" type="text/javascript"></script>
+  <script src="math.uuid.js" type="text/javascript"></script>
 
-            <label for="user">Name</label>
-            <input id="userInput" class="text" type="text" name="user" value=""/>
-            <input id="connectButton" class="button" type="submit" name="" value="Join"/>
-
-          </fieldset>
-        </form>
-      </div>
-      <div id="loading"><p>loading</p></div>
-      <div id="connected">
-        <div id="collage">
-          
-        </div>
-        <div id="chat">
-          <div id="toolbar">
-            <ul id="status">
-              <li class="date" id="currentTime">12:59</li>
-              <li><a id="usersLink" href="#">5 users</a></li>
-            </ul>
-            <input tabindex="1" type="text" id="entry"/>
-          </div>
-          <div id="log"> 
-            <!-- messages go here -->
-          </div>
-        </div>
-      </div>
-  </body>
+</head>
+<body>
+	<section id="login">
+		<form action="#">
+		  <label for="username">You'll find me on the guest-list as</label>
+		  <input id="username" name="username"/> 
+		  <label for="password">and the secret pass-phrase is</label>
+		  <input id="password" name="password" type="password"/>
+		</form>
+	</section>
+	<section id="collage">
+	  
+	</section>
+</body>
 </html>

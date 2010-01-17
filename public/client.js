@@ -89,7 +89,7 @@ function sendMessage(text) {
 
 function sendJoin(user) {
   new Ajax.Request("/join", {
-    parameters: { user: user, room: "demo"},
+    parameters: { user: user, room_id: 0},
     method: 'get',
     onError: showLogin,
     onSuccess: joinSuccess
@@ -124,7 +124,7 @@ function joinSuccess (res) {
   STATUS.session_id = session.id;
   
   getUpdates();
-  showChat();
+  showCollage();
 }
 
 // Chat Actions
@@ -190,26 +190,9 @@ function updateUsersList ( ) {
 
 
 // UI States
-function showLogin () {
-  $("connect").show();
-  $("loading").hide();
-  $("connected").hide();
-  $("userInput").focus();
-}
-
-function showLoad(){
-  $("connect").hide();
-  $("loading").show();
-  $("connected").hide();
-}
-
-function showChat(){
-  $("connected").show();
-  $("entry").focus();
-
-  $("connect").hide();
-  $("loading").hide();
-}
+function showLogin(){  $("login").show(); $("collage").hide(); }
+function showCollage(){$("login").hide(); $("collage").show(); }
+function showLoad(){ }
 
 // Events
 document.observe("dom:loaded", function() {

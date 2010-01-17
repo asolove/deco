@@ -1,130 +1,28 @@
 body {
-  padding: 0;
-  margin: 0;
-  overflow:hidden;
-  height:100%;
-  font: 12px/1.2 Arial;
-  background: #222;
-  color: #eee;
-}
-tr,td,table {
-  padding: 0;
-  margin: 0;
-  outline-width: 0;
-  border-width: 0;
-}
-table {
-  border-collapse: collapse;
-  border-spacing: 0
+  background-color:#333;
+  font: 14px/1.2 "Myriad Pro", Myriad, Arial, sans;
+  color:#ccc;
 }
 
-
-a { text-decoration: none; color: #888; }
-a:hover { text-decoration: underline; color: #aaa; }
-
-#loading, #connect {
-  background: #222;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  padding: 1em;
-}
-
-#loading { z-index: 10000000; }
-#connect { z-index: 10000001; }
-
-#loading p, #connect fieldset  {
-  width: 30em;
-  border: 0;
-}
-
-#toolbar {
-  color: #fff;
-  background-color:#222;
-  position:absolute;
-  top:0px;
-  width:100%;
-}
-#toolbar ul {
-  margin: 0;
-  padding: 0;
-  padding-left:1em;
-  list-style: none;
-}
-
-#toolbar li {
-  display: block; 
-  float: left;
-  margin: 0 2em 0 0;
-}
-
-#usersLink {
-  color: inherit;
-}
-#entry {
-  width: 100%;
-  font-size: inherit;
-  padding: 1em;
-  margin: 0;
-  border-width: 0;
-  outline-width: 0;
-  clear: both;
-  color: #eee;
-  background-color: #111;
-}
-
-#chat {
-  position:fixed;
-  right:0px;
-  top:0px;
-  width:23%;
-  height:100%;
+#login {
+  position:absolute; 
+  left:50%;
+  top:50%;
+  margin-left:-100px;
+  width:200px;
+  padding:30px;
   
-  background: #222;
-  border-left:1px solid #ccc;
-}
-
-#log {
-  display: block;
-  padding: 5em 1em 0;
-}
-
-/* not very important info */
-.notice, .join, .part, .message .date { color: #555; }
-.error { color: #933; }
-.personal .user, .notice .nick { color: #cd5; }
-.date { display: none;}
-
-.user:after { 
-  content: ": ";
-}
-
-.user a {
-  color: inherit;
-}
-
-
-/* collage  */
-#collage { 
-  position:absolute;
-  top: 2px;
-  left:2px;
-  width:75%; 
-  height:98%; 
   background-color:#111;
-  border: 1px solid #ccc;
+  border:1px solid #ccc;
 }
 
-#collage input, #collage span, #collage textarea{
-  position:absolute;
-  background: #222;
-  border-width:0px;
-  text-align:center;
-  color:#fff;
-  min-width:20px;
-  min-height:10px;
+#login input, #login label {
+  line-height:2;
 }
 
-#collage img { position:absolute; }
+#login input {
+  background-color:#000;
+  border:1px solid #444;
+  padding:3px;
+  display:inline;
+}
