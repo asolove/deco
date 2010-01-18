@@ -196,12 +196,10 @@ function showLoad(){ }
 
 // Events
 document.observe("dom:loaded", function() {
-  
   Event.observe(window, "unload", sendPart);
 
   // Log In screen
   $("login-form").observe('submit', function (e) {
-    console.log("login form submit");
     e.stop();
     var username = $("username").value, password = $("password").value;
     sendJoin(username, password);    
@@ -288,10 +286,11 @@ function attachEvents(node, pos){
 $(document).observe("dom:loaded", function(){
   collage = $("collage"); chat = $("chat");
   
-  var pos=[2, 2, 0, 1];
+  var pos=[window.innerWidth/2, window.innerHeight/2, 0, 1];
   
   collage._s = 1;
   collage.observe("manipulate:update", function(event){
+    console.log("Moving collage:", event.memo)
     collage.focus(); // blur text inputs
     collage.style.cssText += 
       ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';
@@ -315,7 +314,6 @@ $(document).observe("dom:loaded", function(){
     event.stop();
   }, true);
   collage.observe("drop", function(event) {
-    console.log("drop event:", event);
     event.stop();
     handleDroppedFiles(event.dataTransfer, {x:event.layerX, y:event.layerY, r:0, s:1});
   }, true);

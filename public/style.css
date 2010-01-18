@@ -32,6 +32,16 @@ body {
   color:#fff;
 }
 
+#login input {
+  margin-left:-4px;
+  display:block;
+}
+
+#login input[type=submit] {
+  background-color:#382;
+  margin-top:1em;
+}
+
 /* COLLAGE INTERFACE */
 #collage {
   position:absolute;
