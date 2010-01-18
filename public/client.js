@@ -23,8 +23,8 @@ var STATUS = {
   user: "",
   session_id: 0,
   users: [],
-  room: "",
-  last_update_time: 0,
+  room_id: 0,
+  last_update_time: 1,
   errors: 0, 
   collageItems: {}
 };
@@ -87,9 +87,9 @@ function sendMessage(text) {
   new Ajax.Request("/send", { method: 'get', parameters: {id: STATUS.session_id, room: STATUS.room, text: text}});
 }
 
-function sendJoin(user) {
+function sendJoin(username, password) {
   new Ajax.Request("/join", {
-    parameters: { user: user, room_id: 0},
+    parameters: { username: username, password: password, room_id: STATUS.room_id},
     method: 'get',
     onError: showLogin,
     onSuccess: joinSuccess
@@ -98,7 +98,7 @@ function sendJoin(user) {
 
 function sendPart(user){
   new Ajax.Request("/part", {
-    parameters: { id: STATUS.session_id},
+    parameters: { id: STATUS.session_id },
     method: 'get'
   });
 }
@@ -190,7 +190,7 @@ function updateUsersList ( ) {
 
 
 // UI States
-function showLogin(){  $("login").show(); $("collage").hide(); }
+function showLogin(){  $("login").show(); $("username").focus(); $("collage").hide(); }
 function showCollage(){$("login").hide(); $("collage").show(); }
 function showLoad(){ }
 
@@ -199,32 +199,12 @@ document.observe("dom:loaded", function() {
   
   Event.observe(window, "unload", sendPart);
 
-  $("entry").observe("keypress", function (e) {
-    if (e.keyCode != 13 /* Return */) return;
-    var msg = $("entry").value.replace("\n", "");
-    if (!msg.blank()) sendMessage(msg);
-    $("entry").value = "";
-  });
-
-  $("connectButton").observe('click', function (e) {
+  // Log In screen
+  $("login-form").observe('submit', function (e) {
+    console.log("login form submit");
     e.stop();
-    showLoad();
-    var nick = $("userInput").value;
-
-    if (nick.length > 50) {
-      alert("Nick too long. 50 character max.");
-      showLogin();
-      return false;
-    }
-
-    if (/[^\w_\-^!]/.exec(nick)) {
-      alert("Bad character in nick. Can only have letters, numbers, and '_', '-', '^', '!'");
-      showLogin();
-      return false;
-    }
-    
-    sendJoin(nick);
-
+    var username = $("username").value, password = $("password").value;
+    sendJoin(username, password);    
     return false;
   });
   
@@ -293,6 +273,7 @@ function attachEvents(node, pos){
     var s = collage._s, memo = event.memo;
     var x1 = pos.x + memo.panX/s, y1 = pos.y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
     node.style.cssText += ';z-index:'+(z++)+';left:'+x1+'px;top:'+y1+'px;';
+    console.log(node.style.cssText);
     node.transform({ rotation: r1, scale: s1 });
     node._x = x1;
     node._y = y1;
@@ -306,8 +287,10 @@ function attachEvents(node, pos){
 
 $(document).observe("dom:loaded", function(){
   collage = $("collage"); chat = $("chat");
+  
   var pos=[2, 2, 0, 1];
   
+  collage._s = 1;
   collage.observe("manipulate:update", function(event){
     collage.focus(); // blur text inputs
     collage.style.cssText += 
@@ -332,18 +315,18 @@ $(document).observe("dom:loaded", function(){
     event.stop();
   }, true);
   collage.observe("drop", function(event) {
-    console.log("drag drop");
+    console.log("drop event:", event);
     event.stop();
-    console.log(event.dataTransfer);
-    handleDroppedFiles(event.dataTransfer);
+    handleDroppedFiles(event.dataTransfer, {x:event.layerX, y:event.layerY, r:0, s:1});
   }, true);
 });
 
-function handleDroppedFiles(dataTransfer) {
+function handleDroppedFiles(dataTransfer, pos) {
+  if(!pos) pos = {x: 10, y:10, r: 0, s:1};
 	var files = $A(dataTransfer.files);
 	files.each(function(file){
 	  if(file.fileSize < 1000000) {
-		  var img = addCollageImage(undefined, file.getAsDataURL(), {x: 10, y:10, r: 0, s:1});
+		  var img = addCollageImage(undefined, file.getAsDataURL(), pos);
 	  } else {
   		alert("file is too big, needs to be below 1mb");
 	  }

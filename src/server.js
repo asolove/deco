@@ -8,6 +8,37 @@ var fu = require("../lib/fu"),
 var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 5 * 60 * 1000;
 
+
+// Users
+var users = GLOBAL.users = {};
+
+var User = GLOBAL.User = function(username, password){
+  if(username.length > 50) return null;
+  if(/[^\w_\-^!]/.exec(username)) return null;
+  if(username in users) return null;
+  
+  this.username = username;
+  this.password = password;
+  users[this.username] = this;
+};
+
+User.valid = function(user){
+  return user.constructor == User && user.username in users && users[user.username] == user;
+};
+User.find = function(username, password){
+  var user = false;
+  if((user = users[username]) && (user.password = password)){
+    return user;
+  } else {
+    return false;
+  }
+};
+
+new User("asolove", "test");
+new User("someone", "test");
+
+
+// Rooms
 var rooms = new Array(); // set to current length of rooms
 
 var Room = GLOBAL.Room = function(messages){
@@ -17,6 +48,12 @@ var Room = GLOBAL.Room = function(messages){
   room.id = rooms.length;
   rooms[room.id] = room;
   setInterval(function(){room.clearCallbacks();}, 1000);
+};
+Room.find = function(id){
+  return rooms[id];
+};
+Room.valid = function(room){
+  return room.constructor == Room && room.id in rooms && rooms[room.id] == room;
 };
 
 var the_room = GLOBAL.the_room = new Room([]);
@@ -51,68 +88,53 @@ Room.prototype.clearCallbacks = function(){
   }
 };
 
-var sessions = {};
 
-function createSession (user, room_id) {
-  if (user.length > 50) return null;
-  if (/[^\w_\-^!]/.exec(user)) return null;
 
-  for (var i in sessions) {
-    var session = sessions[i];
-    if (session && session.user === user) return null;
+// Sessions
+var sessions = GLOBAL.sessions = {};
+
+var Session = GLOBAL.Session = function(user, room){
+  if(!User.valid(user)) return null;
+  if(!Room.valid(room)) return null;
+  // FIXME add access control based on user: if invalid, return false;
+  
+  this.user = user;
+  this.room = room;
+  this.time = new Date();
+  this.id = Math.floor(Math.random()*99999999).toString();
+  sessions[this.id] = this;
+};
+
+Session.prototype.poke = function() { this.time = new Date(); };
+Session.prototype.destroy = function() { delete sessions[this.id]; };
+
+Session.timeout = function(){
+  var cutoff = new Date() - SESSION_TIMEOUT, session = null;
+  for(var id in sessions){
+    if(!sessions.hasOwnProperty(id)) continue;
+    session = sessions[id];
+    if(cutoff > session.time) session.destroy();
   }
+};
+setInterval(Session.timeout, 1000);
 
-  var session = { 
-    user: user, 
-    room_id: room_id,
-    id: Math.floor(Math.random()*99999999999).toString(),
-    time: new Date(),
-    poke: function () {
-      session.time = new Date();
-    },
-    destroy: function () {
-      channel.appendMessage(session.user, "part");
-      delete sessions[session.id];
-    }
-  };
-
-  sessions[session.id] = session;
-  return session;
-}
-
-// interval to kill off old sessions
-setInterval(function () {
-  var now = new Date();
-  for (var id in sessions) {
-    if (!sessions.hasOwnProperty(id)) continue;
-    var session = sessions[id];
-
-    if (now - session.time > SESSION_TIMEOUT) {
-      session.destroy();
-    }
-  }
-}, 1000);
 
 
 // Controller pipelines
 Function.prototype.pipeline = function(f){
+  var wrapped = this;
   return function(req, res){
-    if(f(req, res)) this(req, res);
+    if(f(req, res)) wrapped(req, res);
   };
 };
 
 function withSession(req, res){
-  var id=req.uri.params.id, session=sessions[id], room_id=req.uri.params.room_id, room=rooms[room_id];
-  if(!session || !room || !(session.room_id==room_id)){
-    res.simpleJSON(400, {error: "Access denied: invalid session or room."});
+  var id=req.uri.params.id, session=sessions[id];
+  if(!session){
+    res.simpleJSON(400, {error: "Access denied: invalid session."});
     return false;
   }
-  process.mixin(req, {
-    room_id: room_id,
-    room: room,
-    id: id,
-    session: session
-  });
+  process.mixin(req, { session: session });
   return true;
 }
 
@@ -125,24 +147,20 @@ fu.get("/math.uuid.js", fu.staticHandler("public/math.uuid.js"));
 fu.get("/prototype.s2.min.js", fu.staticHandler("public/prototype.s2.min.js"));
 
 fu.get("/join", function (req, res) {
-  var user = req.uri.params.user;
-  sys.puts("/join request: " + user);
-  if (!user || user.length == 0) {
-    res.simpleJSON(400, {error: "Bad username."});
+  var username = req.uri.params.username, password = req.uri.params.password;
+  var user = User.find(username, password);
+  if(!user){
+    res.simpleJSON(400, {error: "Username or password invalid."});
     return;
-  }
-  var session = createSession(user);
+  } 
+  var room = Room.find(req.uri.params.room_id), session = new Session(user, room);
   if (!session) {
-    res.simpleJSON(400, {error: "Username in use."});
-    return;
-  }
-  var room_id = req.uri.params.room_id, room = rooms[room_id];
-  if(!room){
-    res.simpleJSON(400, {error: "Unknown room."});
+    res.simpleJSON(400, {error: "You do not have access to this room."});
     return;
   }
   
-  res.simpleJSON(200, { id: session.id, user: session.user});
+  sys.puts("/join request: " + username);
+  res.simpleJSON(200, { id: session.id });
 });
 
 fu.get("/part", function (req, res) {
@@ -155,10 +173,9 @@ fu.get("/updates", function (req, res) {
     res.simpleJSON(400, { error: "Must supply since parameter" });
     return;
   }
-  var since = parseInt(req.uri.params.since, 10), session = false;
+  var since = parseInt(req.uri.params.since, 10);
   req.session.poke();
-
-  req.room.query(since, function (messages) {
+  req.session.room.query(since, function (messages) {
     req.session.poke();
     res.simpleJSON(200, { messages: messages });
   });

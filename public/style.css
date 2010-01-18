@@ -2,17 +2,22 @@ body {
   background-color:#333;
   font: 14px/1.2 "Myriad Pro", Myriad, Arial, sans;
   color:#ccc;
+  padding:0px; margin:0px; overflow:hidden;
 }
 
+
+/* LOGIN FORM */
 #login {
   position:absolute; 
   left:50%;
   top:50%;
   margin-left:-100px;
+  margin-top:-100px;
   width:200px;
+  height:124px;
   padding:30px;
   
-  background-color:#111;
+  background-color:#222;
   border:1px solid #ccc;
 }
 
@@ -20,9 +25,25 @@ body {
   line-height:2;
 }
 
-#login input {
+#login input, #collage input {
   background-color:#000;
   border:1px solid #444;
   padding:3px;
-  display:inline;
+  color:#fff;
+}
+
+/* COLLAGE INTERFACE */
+#collage {
+  position:absolute;
+  left:50%; top:50%;
+  margin-left:-400px;
+  margin-top:-247px;
+  width:800px;
+  height:493px;
+  border:1px solid #ccc;
+  background-color:#222;
+}
+
+#collage img, #collage input {
+  position:absolute;
 }
