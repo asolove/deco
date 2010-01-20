@@ -6,8 +6,6 @@ var fu = require("../lib/fu"),
     Dirty = require("../lib/node-dirty/lib/dirty").Dirty,
     repl = require("repl");
 
-GLOBAL.Dirty = Dirty;
-
 var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 5 * 60 * 1000;
 
@@ -48,7 +46,8 @@ var Room = GLOBAL.Room = function(messages){
   var room = this;
   room.callbacks = [];
   room.id = rooms.length;
-  room.messages = new Dirty(room.id, {flushInterval: 10});
+  room.messages = new Dirty("db/room/"+room.id, {flushInterval: 10});
+  room.messages.load();
   rooms[room.id] = room;
   setInterval(function(){room.clearCallbacks();}, 1000);
 };
@@ -61,6 +60,10 @@ Room.valid = function(room){
 
 var the_room = GLOBAL.the_room = new Room([]);
 
+Room.prototype.allMessages = function(){
+  return this.messages.filter(function(){return true;});
+};
+
 Room.prototype.addMessage = function(message){
   this.messages.add(message);
   var data = JSON.stringify(message);
@@ -68,14 +71,9 @@ Room.prototype.addMessage = function(message){
 };
 
 Room.prototype.query = function(since, callback){
-  if(since == 1 && this.messages.length > 1) callback(this.messages);
+  if(since == 1 && this.messages.length > 1) callback(this.allMessages());
   
-  var res = [];
-  this.messages.forEach(function(m){
-    if(m.time > since){
-      res.push(m);
-    }
-  });
+  var res = this.messages.filter(function(m){ return(m.time > since); });
   if(res.length > 0){
     callback(res);
   } else {
@@ -137,8 +135,6 @@ function withSession(req, res){
     res.simpleJSON(400, {error: "Access denied: invalid session."});
     return false;
   }
-  sys.puts("\n\n\nmixed in session: uri: " + sys.inspect(req.uri));
-  sys.puts("\n\n\nmixed in session: session: " + sys.inspect(req.session));
   return true;
 }
 
@@ -190,6 +186,7 @@ fu.get("/send", function(req, res) {
   var message = req.uri.params; // Need to clean these
   delete message["session_id"];
   message.username = req.session.user.username;
+  message.time = new Date().getTime();
   req.session.room.addMessage(req.uri.params);
   res.simpleJSON(200, {});
 }.pipeline(withSession));

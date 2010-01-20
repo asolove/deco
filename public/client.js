@@ -47,9 +47,9 @@ function getUpdates() {
     onSuccess: function (res) {
       STATUS.errors = 0;
       var data = JSON.parse(res.responseText);
-      console.log("in onSuccess: data = ", data);
-      if(data && data.messages) messages.each(collageUpdate);
-      //getUpdates();
+      console.log("in onsuccess:", data.messages);
+      if(data && data.messages) data.messages.each(collageUpdate);
+      getUpdates();
     }
   });
 }
@@ -112,16 +112,16 @@ function joinSuccess (res) {
 // 
 function collageUpdate(message){
   if(STATUS.last_update_time < message.time) STATUS.last_update_time = message.time;
-  console.log("collage Update got:", message)
-  // data.message = JSON.parse(data.message);
-  if(data.user == STATUS.user) {
-    return false;
-  }
-  if(data.message.id in STATUS.collageItems) {
-    var input = STATUS.collageItems[data.message.id];
-    updateCollageText(input, data.message.text, data.message.pos);
+  console.log("collage Update got:", message);
+  
+  // FIXME: don't do if we already have this action
+  
+  if(message.id in STATUS.collageItems) {
+    var input = STATUS.collageItems[message.id];
+    updateCollageText(input, message.text, message);
   } else {
-    addCollageText(data.message.id, data.message.text, data.message.pos);
+    console.log("calling addCollageText", message.id, message.text, message.pos);
+    addCollageText(message.id, message.text, message);
   }
 };
 
@@ -215,7 +215,7 @@ function addCollageText(id, text, pos) {
   
   input.observe("dblclick", function(event) { event.stop(); input.focus(); });
   input.observe("change", function(event){
-    sendCollageUpdate({id:id, text: input.value, pos: {x: input._x, y: input._y, r: input._r, s: input._s}});
+    sendCollageUpdate({id:id, text: input.value, x: input._x, y: input._y, r: input._r, s: input._s });
   });
 }
 
