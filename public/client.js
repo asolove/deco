@@ -29,27 +29,6 @@ var STATUS = {
   collageItems: {}
 };
 
-function processUpdates(data) {
-  if(data && data.messages) {
-    data.messages.each(function(update) {
-      if (update.time > STATUS.last_update_time)
-        STATUS.last_update_time = update.time;
-      
-      switch(update.type) {
-        // chat updates
-        case 'join':  chatJoin(update.user, update.time); break;
-        case 'msg':   chatMessage(update.user, update.time, update.message); break;
-        case 'part':  chatPart(update.user, update.time); break;
-        // collage updates
-        case 'move':   collageMove(update); break;
-        case 'collage':collageUpdate(update); break;
-        case 'new':    collageNew(update); break;
-        case 'delete': collageDelete(update); break;
-      }
-    });
-  }
-}
-
 function getUpdates() {
   if(STATUS.errors > 2)
     return;
@@ -59,7 +38,7 @@ function getUpdates() {
 
   new Ajax.Request("/updates", {
     method: 'get',
-    parameters: {id: STATUS.session_id, since: STATUS.last_update_time },
+    parameters: {session_id: STATUS.session_id, since: STATUS.last_update_time },
     onError: function () {
       STATUS.errors += 1;
       addMessage("", "There was an error contacting the server.", new Date(), "error");
@@ -67,8 +46,10 @@ function getUpdates() {
     },
     onSuccess: function (res) {
       STATUS.errors = 0;
-      processUpdates(res.responseText.evalJSON());
-      getUpdates();
+      var data = JSON.parse(res.responseText);
+      console.log("in onSuccess: data = ", data);
+      if(data && data.messages) messages.each(collageUpdate);
+      //getUpdates();
     }
   });
 }
@@ -98,15 +79,16 @@ function sendJoin(username, password) {
 
 function sendPart(user){
   new Ajax.Request("/part", {
-    parameters: { id: STATUS.session_id },
+    parameters: { session_id: STATUS.session_id },
     method: 'get'
   });
 }
 
 function sendCollageUpdate(message){  
+  message.session_id = STATUS.session_id;
   message["type"] = "collage";
-  new Ajax.Request("/collage", {
-    parameters: { id: STATUS.session_id, message: JSON.stringify(message)},
+  new Ajax.Request("/send", {
+    parameters: message,
     method: 'get'
   });
 }
@@ -121,36 +103,17 @@ function joinSuccess (res) {
   }
   
   STATUS.user = session.user;
-  STATUS.session_id = session.id;
+  STATUS.session_id = session.session_id;
   
   getUpdates();
   showCollage();
 }
 
-// Chat Actions
-function chatJoin(user, time) {
-  chatAddMessage(user, "joined", time);
-  STATUS.users.push(user);
-  updateUsersList();
-}
-
-function chatPart(user, time) {
-  chatAddMessage(user, "left", time);
-  STATUS.users = STATUS.users.without(user);
-  updateUsersList();
-}
-
-function chatMessage(user, time, text) {
-  chatAddMessage(user, text, time);
-}
-
-// Collage actions
-function collageMove(data){
-  if(data.user == STATUS.user) return;
-  
-};
-function collageUpdate(data){
-  data.message = JSON.parse(data.message);
+// 
+function collageUpdate(message){
+  if(STATUS.last_update_time < message.time) STATUS.last_update_time = message.time;
+  console.log("collage Update got:", message)
+  // data.message = JSON.parse(data.message);
   if(data.user == STATUS.user) {
     return false;
   }
@@ -160,14 +123,6 @@ function collageUpdate(data){
   } else {
     addCollageText(data.message.id, data.message.text, data.message.pos);
   }
-};
-function collageNew(data){
-  if(data.user == STATUS.user) return;
-  
-};
-function collageDelete(data){
-  if(data.user == STATUS.user) return;
-  
 };
 
 // Chat UI
@@ -270,8 +225,10 @@ function attachEvents(node, pos){
     event.stop();
     var s = collage._s, memo = event.memo;
     var x1 = pos.x + memo.panX/s, y1 = pos.y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
+    if(s1 * s < .2) {
+      node.remove(); return false;
+    }
     node.style.cssText += ';z-index:'+(z++)+';left:'+x1+'px;top:'+y1+'px;';
-    console.log(node.style.cssText);
     node.transform({ rotation: r1, scale: s1 });
     node._x = x1;
     node._y = y1;
@@ -290,7 +247,6 @@ $(document).observe("dom:loaded", function(){
   
   collage._s = 1;
   collage.observe("manipulate:update", function(event){
-    console.log("Moving collage:", event.memo)
     collage.focus(); // blur text inputs
     collage.style.cssText += 
       ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';

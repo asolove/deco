@@ -64,10 +64,12 @@ Room.prototype.addMessage = function(message){
 
   this.messages.push(message);
   var data = JSON.stringify(message);
-  this.callbacks.forEach(function(c){c(data);});
+  this.callbacks.forEach(function(c){c.callback([data]);});
 };
 
 Room.prototype.query = function(since, callback){
+  if(since == 1 && this.messages.length > 1) callback(this.messages);
+  
   var res = [];
   this.messages.forEach(function(m){
     if(m.time > since){
@@ -101,18 +103,18 @@ var Session = GLOBAL.Session = function(user, room){
   this.user = user;
   this.room = room;
   this.time = new Date();
-  this.id = Math.floor(Math.random()*99999999).toString();
-  sessions[this.id] = this;
+  this.session_id = Math.floor(Math.random()*99999999).toString();
+  sessions[this.session_id] = this;
 };
 
 Session.prototype.poke = function() { this.time = new Date(); };
-Session.prototype.destroy = function() { delete sessions[this.id]; };
+Session.prototype.destroy = function() { delete sessions[this.session_id]; };
 
 Session.timeout = function(){
   var cutoff = new Date() - SESSION_TIMEOUT, session = null;
-  for(var id in sessions){
-    if(!sessions.hasOwnProperty(id)) continue;
-    session = sessions[id];
+  for(var session_id in sessions){
+    if(!sessions.hasOwnProperty(session_id)) continue;
+    session = sessions[session_id];
     if(cutoff > session.time) session.destroy();
   }
 };
@@ -129,12 +131,14 @@ Function.prototype.pipeline = function(f){
 };
 
 function withSession(req, res){
-  var id=req.uri.params.id, session=sessions[id];
-  if(!session){
+  var session_id=req.uri.params.session_id, session=sessions[session_id];
+  req.session = session;
+  if(!req.session){
     res.simpleJSON(400, {error: "Access denied: invalid session."});
     return false;
   }
-  process.mixin(req, { session: session });
+  sys.puts("\n\n\nmixed in session: uri: " + sys.inspect(req.uri));
+  sys.puts("\n\n\nmixed in session: session: " + sys.inspect(req.session));
   return true;
 }
 
@@ -160,7 +164,7 @@ fu.get("/join", function (req, res) {
   }
   
   sys.puts("/join request: " + username);
-  res.simpleJSON(200, { id: session.id });
+  res.simpleJSON(200, { session_id: session.session_id });
 });
 
 fu.get("/part", function (req, res) {
@@ -183,7 +187,10 @@ fu.get("/updates", function (req, res) {
 
 fu.get("/send", function(req, res) {
   req.session.poke();
-  req.room.addMessage(req.uri.params.message);
+  var message = req.uri.params; // Need to clean these
+  delete message["session_id"];
+  message.username = req.session.user.username;
+  req.session.room.addMessage(req.uri.params);
   res.simpleJSON(200, {});
 }.pipeline(withSession));
 

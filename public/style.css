@@ -1,5 +1,5 @@
 body {
-  background-color:#333;
+  background-color:#222;
   font: 14px/1.2 "Myriad Pro", Myriad, Arial, sans;
   color:#ccc;
   padding:0px; margin:0px; overflow:hidden;
@@ -17,7 +17,7 @@ body {
   height:124px;
   padding:30px;
   
-  background-color:#222;
+  background-color:#111;
   border:1px solid #ccc;
 }
 
@@ -25,9 +25,12 @@ body {
   line-height:2;
 }
 
+#login input {
+  border:1px solid #444;
+}
+
 #login input, #collage input {
   background-color:#000;
-  border:1px solid #444;
   padding:3px;
   color:#fff;
 }
@@ -51,9 +54,14 @@ body {
   width:800px;
   height:493px;
   border:1px solid #ccc;
-  background-color:#222;
+  background-color:#111;
 }
 
 #collage img, #collage input {
   position:absolute;
+}
+
+#collage input {
+  text-align:center;
+  border-width:0px;
 }
