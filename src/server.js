@@ -3,7 +3,10 @@ PORT = 8001;
 
 var fu = require("../lib/fu"),
     sys = require("sys"),
+    Dirty = require("../lib/node-dirty/lib/dirty").Dirty,
     repl = require("repl");
+
+GLOBAL.Dirty = Dirty;
 
 var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 5 * 60 * 1000;
@@ -43,9 +46,9 @@ var rooms = new Array(); // set to current length of rooms
 
 var Room = GLOBAL.Room = function(messages){
   var room = this;
-  room.messages = messages || [];
   room.callbacks = [];
   room.id = rooms.length;
+  room.messages = new Dirty(room.id, {flushInterval: 10});
   rooms[room.id] = room;
   setInterval(function(){room.clearCallbacks();}, 1000);
 };
@@ -59,10 +62,7 @@ Room.valid = function(room){
 var the_room = GLOBAL.the_room = new Room([]);
 
 Room.prototype.addMessage = function(message){
-  message.time = (new Date()).getTime();
-  sys.puts("Message added: " + sys.inspect(message));
-
-  this.messages.push(message);
+  this.messages.add(message);
   var data = JSON.stringify(message);
   this.callbacks.forEach(function(c){c.callback([data]);});
 };
