@@ -66,8 +66,7 @@ Room.prototype.allMessages = function(){
 
 Room.prototype.addMessage = function(message){
   this.messages.add(message);
-  var data = JSON.stringify(message);
-  this.callbacks.forEach(function(c){c.callback([data]);});
+  this.callbacks.forEach(function(c){c.callback([message]);});
 };
 
 Room.prototype.query = function(since, callback){

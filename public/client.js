@@ -47,7 +47,6 @@ function getUpdates() {
     onSuccess: function (res) {
       STATUS.errors = 0;
       var data = JSON.parse(res.responseText);
-      console.log("in onsuccess:", data.messages);
       if(data && data.messages) data.messages.each(collageUpdate);
       getUpdates();
     }
@@ -112,32 +111,16 @@ function joinSuccess (res) {
 // 
 function collageUpdate(message){
   if(STATUS.last_update_time < message.time) STATUS.last_update_time = message.time;
-  console.log("collage Update got:", message);
   
   // FIXME: don't do if we already have this action
-  
   if(message.id in STATUS.collageItems) {
     var input = STATUS.collageItems[message.id];
     updateCollageText(input, message.text, message);
   } else {
-    console.log("calling addCollageText", message.id, message.text, message.pos);
     addCollageText(message.id, message.text, message);
   }
 };
 
-// Chat UI
-function chatAddMessage(user, text, time, _class) {
-  if(!text) return;
-  text = text.escapeHTML().replace(util.urlRE, '<a target="_blank" href="$&">$&</a>');
-  time = time ? new Date(time) : new Date();
-  
-  var message = new Element("div", { "class": "message " + _class + (user == STATUS.user ? " personal" : "")});
-  message.update('<span class="date">' + util.timeString(time) + '</span>'
-    + '<span class="user">' + user.escapeHTML() + '</span>'
-    + '<span class="msg-text">' + text  + '</span>');
-    
-  $("log").insert(message);
-}
 
 function updateUsersList ( ) {
   $("usersLink").update(STATUS.users.length.toString() + " user" + (STATUS.users.length > 1 ? "s" : ""));
@@ -174,17 +157,15 @@ S2.enableMultitouchSupport = true;
 var collage, chat, z = 1;
 
 // UI events
-
 function updateCollageText(input, text, pos){
-  if(pos && "x" in pos) {
+  if(pos && ("x" in pos)) {
     var x = pos.x || input._x, y=pos.y || input._y, s=pos.s || 1, r=pos.r || 0;   
-    input.style.cssText += 
-      ';z-index:'+(z++)+';left:'+x+'px;top:'+y+'px;';
-    input.transform({ rotation: r1, scale: s1 });
+    input.style.cssText += ';z-index:'+(z++)+';left:'+x+'px;top:'+y+'px;';
+    input.transform({ rotation: r, scale: s });
     input._x = x;
     input._y = y;
-    input._r = r;
-    input._s = s;
+    input._rotation = r; input._r = r;
+    input._scale = s; input._scale = s;
   }
   if(text) {
     input.value = text;
@@ -194,6 +175,7 @@ function updateCollageText(input, text, pos){
 
 function positionAndAddElement(node, pos){
   node.style.cssText += ';z-index:'+(z++)+';left:'+pos.x+'px;top:'+pos.y+'px;';
+  node._x = pos.x; node._y = pos.y; node._rotation = pos.r; node._r = pos.r; node._scale = pos.s; node._s = pos.s;
   node.transform({ rotation: pos.r, scale: pos.s });
   collage.insert(node);
   STATUS.collageItems[node.id] = node;
@@ -219,12 +201,18 @@ function addCollageText(id, text, pos) {
   });
 }
 
-
 function attachEvents(node, pos){
+  node.viewportOffsetA = function(){
+    var cO = collage.viewportOffset(), nO = node.positionedOffset();
+    return [ Math.round(cO[0] + nO[0] * collage._scale)
+           , Math.round(cO[1] + nO[1] * collage._scale)
+           ];
+  };
   node.observe("manipulate:update", function(event){
     event.stop();
-    var s = collage._s, memo = event.memo;
+    var s = collage._scale, memo = event.memo;
     var x1 = pos.x + memo.panX/s, y1 = pos.y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
+    x1 = x1 + ( (s-1)*375 );
     if(s1 * s < .2) {
       node.remove(); return false;
     }
@@ -235,23 +223,31 @@ function attachEvents(node, pos){
     node._r = r1;
     node._s = s1;
   });
-  node.observe("manipulate:finished", function(event) {    
-    sendCollageUpdate({id:id, pos:{x: x1, y: y1, r: r1, s: s1}});
+  
+  node.observe("manipulate:end", function(event) {   
+    sendCollageUpdate({id:node.id, x: node._x, y: node._y, r: node._r, s: node._s});
   });
 }
 
 $(document).observe("dom:loaded", function(){
   collage = $("collage"); chat = $("chat");
   
+  collage.viewportOffset = function(){
+    var vO = Element.viewportOffset(collage);
+    vO[0] += 400 - 400*collage._scale;
+    vO[1] += 247 - 247*collage._scale;
+    return vO;
+  };
+  
   var pos=[window.innerWidth/2, window.innerHeight/2, 0, 1];
   
-  collage._s = 1;
+  collage._scale = 1;
   collage.observe("manipulate:update", function(event){
     collage.focus(); // blur text inputs
     collage.style.cssText += 
       ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';
     collage.transform({ scale: event.memo.scale });
-    collage._s = event.memo.scale;
+    collage._scale = event.memo.scale;
     collage._x = pos[0]+event.memo.panX;
     collage._y = pos[1]+event.memo.panY;
     event.stop();
