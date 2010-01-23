@@ -202,17 +202,11 @@ function addCollageText(id, text, pos) {
 }
 
 function attachEvents(node, pos){
-  node.viewportOffsetA = function(){
-    var cO = collage.viewportOffset(), nO = node.positionedOffset();
-    return [ Math.round(cO[0] + nO[0] * collage._scale)
-           , Math.round(cO[1] + nO[1] * collage._scale)
-           ];
-  };
   node.observe("manipulate:update", function(event){
     event.stop();
-    var s = collage._scale, memo = event.memo;
-    var x1 = pos.x + memo.panX/s, y1 = pos.y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
-    x1 = x1 + ( (s-1)*375 );
+    var s = collage._s, memo = event.memo;
+    var x1 = pos.x + memo.panX/s,
+        y1 = pos.y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
     if(s1 * s < .2) {
       node.remove(); return false;
     }
@@ -229,25 +223,27 @@ function attachEvents(node, pos){
   });
 }
 
+
+collageViewportOffset = function(){
+  var vO = collage.viewportOffset();
+  vO.left = vO[0] += 400 - 400*collage._s;
+  vO.top  = vO[1] += 247 - 247*collage._s;
+  return vO;
+};
+
 $(document).observe("dom:loaded", function(){
   collage = $("collage"); chat = $("chat");
   
-  collage.viewportOffset = function(){
-    var vO = Element.viewportOffset(collage);
-    vO[0] += 400 - 400*collage._scale;
-    vO[1] += 247 - 247*collage._scale;
-    return vO;
-  };
   
   var pos=[window.innerWidth/2, window.innerHeight/2, 0, 1];
   
-  collage._scale = 1;
+  collage._s = 1;
   collage.observe("manipulate:update", function(event){
     collage.focus(); // blur text inputs
     collage.style.cssText += 
       ';z-index:'+(z++)+';left:'+(pos[0]+event.memo.panX)+'px;top:'+(pos[1]+event.memo.panY)+'px;';
     collage.transform({ scale: event.memo.scale });
-    collage._scale = event.memo.scale;
+    collage._s = event.memo.scale;
     collage._x = pos[0]+event.memo.panX;
     collage._y = pos[1]+event.memo.panY;
     event.stop();
