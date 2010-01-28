@@ -202,11 +202,14 @@ function addCollageText(id, text, pos) {
 }
 
 function attachEvents(node, pos){
+  node._origX = 0;
+  node._origY = 0;
   node.observe("manipulate:update", function(event){
+    console.log("update manipulate")
     event.stop();
     var s = collage._s, memo = event.memo;
-    var x1 = node._origX + (memo.panX - node._origX)/s,
-        y1 = node._origY + (memo.panY - node._origY)/s,
+    var x1 = pos.x + node._origX + (memo.panX-node._origX)/s,
+        y1 = pos.y + node._origY + (memo.panY-node._origY)/s,
         r1 = memo.rotation, s1 = memo.scale;
     if(s1 * s < .2) {
       node.remove(); return false;
@@ -220,8 +223,9 @@ function attachEvents(node, pos){
   });
   
   node.observe("manipulate:start", function(event){
+    console.log("start manipulate")
     var pO = node.positionedOffset();
-    node._origX = pO.left; node._origY = pO.top;
+    node._origX = pO.left - pos.x; node._origY = pO.top - pos.y;
   });
   
   node.observe("manipulate:end", function(event) {   

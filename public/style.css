@@ -64,4 +64,5 @@ body {
 #collage input {
   text-align:center;
   border-width:0px;
+  cursor:pointer;
 }
