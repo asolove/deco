@@ -117,7 +117,11 @@ function collageUpdate(message){
     var input = STATUS.collageItems[message.id];
     updateCollageText(input, message.text, message);
   } else {
-    addCollageText(message.id, message.text, message);
+    if(message.text) {
+      addCollageText(message.id, message.text, message);
+    } else {
+      addCollageImage(message.id, message.src, message);
+    }
   }
 };
 
@@ -186,6 +190,7 @@ function addCollageImage(id, src, pos){
   var image = new Element("img", {src:src, id: id, height: 200});
   positionAndAddElement(image, pos);
   attachEvents(image, pos);
+  sendCollageUpdate(Object.extend(pos, { id: id, src:src}))
 }
 
 function addCollageText(id, text, pos) {
@@ -205,7 +210,6 @@ function attachEvents(node, pos){
   node._origX = 0;
   node._origY = 0;
   node.observe("manipulate:update", function(event){
-    console.log("update manipulate")
     event.stop();
     var s = collage._s, memo = event.memo;
     var x1 = pos.x + node._origX + (memo.panX-node._origX)/s,
@@ -223,7 +227,6 @@ function attachEvents(node, pos){
   });
   
   node.observe("manipulate:start", function(event){
-    console.log("start manipulate")
     var pO = node.positionedOffset();
     node._origX = pO.left - pos.x; node._origY = pO.top - pos.y;
   });
@@ -282,7 +285,7 @@ function handleDroppedFiles(dataTransfer, pos) {
 	var files = $A(dataTransfer.files);
 	files.each(function(file){
 	  if(file.fileSize < 1000000) {
-		  var img = addCollageImage(undefined, file.getAsDataURL(), pos);
+		  var img = addCollageImage(undefined, "http://localhost/Desktop/"+file.fileName, pos);
 	  } else {
   		alert("file is too big, needs to be below 1mb");
 	  }
