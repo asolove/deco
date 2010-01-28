@@ -205,8 +205,9 @@ function attachEvents(node, pos){
   node.observe("manipulate:update", function(event){
     event.stop();
     var s = collage._s, memo = event.memo;
-    var x1 = pos.x + memo.panX/s,
-        y1 = pos.y + memo.panY/s, r1 = memo.rotation, s1 = memo.scale;
+    var x1 = node._origX + (memo.panX - node._origX)/s,
+        y1 = node._origY + (memo.panY - node._origY)/s,
+        r1 = memo.rotation, s1 = memo.scale;
     if(s1 * s < .2) {
       node.remove(); return false;
     }
@@ -216,6 +217,11 @@ function attachEvents(node, pos){
     node._y = y1;
     node._r = r1;
     node._s = s1;
+  });
+  
+  node.observe("manipulate:start", function(event){
+    var pO = node.positionedOffset();
+    node._origX = pO.left; node._origY = pO.top;
   });
   
   node.observe("manipulate:end", function(event) {   
