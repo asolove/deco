@@ -113,7 +113,7 @@ function collageUpdate(message){
   // FIXME: don't do if we already have this action
   if(message.id in STATUS.collageItems) {
     var input = STATUS.collageItems[message.id];
-    updateCollageText(input, message.text, message);
+    updateCollageItem(input, message);
   } else {
     if(message.text) {
       addCollageText(message.id, message.text, message);
@@ -159,19 +159,20 @@ S2.enableMultitouchSupport = true;
 var collage, chat, z = 1;
 
 // UI events
-function updateCollageText(input, text, pos){
-  if(pos && ("x" in pos)) {
-    var x = pos.x || input._x, y=pos.y || input._y, s=pos.s || 1, r=pos.r || 0;   
-    input.style.cssText += ';z-index:'+(z++)+';left:'+x+'px;top:'+y+'px;';
-    input.transform({ rotation: r, scale: s });
-    input._x = x;
-    input._y = y;
-    input._rotation = r; input._r = r;
-    input._scale = s; input._scale = s;
+function updateCollageItem(node, message){
+  if("x" in message) {
+    var x = message.x || node._x, y=message.y || node._y, s=message.s || 1, r=message.r || 0;   
+    node.style.cssText += ';z-index:'+(z++)+';left:'+x+'px;top:'+y+'px;';
+    node.transform({ rotation: r, scale: s });
+    node._panX += x - node._x;
+    node._panY += y - node._y;
+    node._x = x;
+    node._y = y;
+    node._rotation = r; node._r = r;
+    node._scale = s; node._scale = s;
   }
-  if(text) {
-    input.value = text;
-  }
+  if(message.text) node.value = message.text;
+  if(message.src) node.src = message.src;
   return false;
 };
 
@@ -184,6 +185,7 @@ function positionAndAddElement(node, pos){
 }
 
 function addCollageImage(id, src, pos){
+  pos.x = pos.x || 0; pos.y = pos.y || 0; pos.s = pos.s || 1; pos.r = pos.r || 0;
   if(!id) id = Math.uuid(10);
   var image = new Element("img", {src:src, id: id, height: 200});
   positionAndAddElement(image, pos);
@@ -212,8 +214,9 @@ function attachEvents(node, pos){
   node._origY = 0;
   node.observe("manipulate:update", function(event){
     event.stop();
+    console.log(pos.x, node._origX, event.memo.panX, node._x);
     var s = collage._s, memo = event.memo;
-    var x1 = pos.x + node._origX + (memo.panX-node._origX)/s,
+    var x1 = node._origX + (memo.panX-node._origX)/s,
         y1 = pos.y + node._origY + (memo.panY-node._origY)/s,
         r1 = memo.rotation, s1 = memo.scale;
     if(s1 * s < .2) {
@@ -228,11 +231,12 @@ function attachEvents(node, pos){
   });
   
   node.observe("manipulate:start", function(event){
-    var pO = node.positionedOffset();
-    node._origX = pO.left - pos.x; node._origY = pO.top - pos.y;
+    //var pO = node.positionedOffset();
+    //node._origX = pO.left - pos.x; node._origY = pO.top - pos.y;
   });
   
   node.observe("manipulate:end", function(event) {   
+    node._origX = node.positionedOffset().left;
     sendCollageUpdate({id:node.id, x: node._x, y: node._y, r: node._r, s: node._s});
   });
 }
@@ -320,8 +324,7 @@ function uploadImageFile(file, id) {
   xhr.open("POST", "upload?session_id="+STATUS.session_id+"&id="+id);
   xhr.overrideMimeType('text/plain; charset=x-user-defined-binary');
   
-  xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' 
-      + boundary);
+  xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' + boundary);
   xhr.sendAsBinary(result);        
   
   xhr.onload = function(event) { 
