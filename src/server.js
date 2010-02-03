@@ -1,10 +1,13 @@
 HOST = null; // localhost
 PORT = 8001;
 
-var fu = require("../lib/fu"),
+var server = require("../lib/node-router/node-router"),
     sys = require("sys"),
+    multipart = require("multipart"),
     Dirty = require("../lib/node-dirty/lib/dirty").Dirty,
-    repl = require("repl");
+    repl = require("repl"),
+    url = require("url"),
+    qs = require("querystring");
 
 var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 5 * 60 * 1000;
@@ -128,66 +131,98 @@ Function.prototype.pipeline = function(f){
 };
 
 function withSession(req, res){
-  var session_id=req.uri.params.session_id, session=sessions[session_id];
+  var params = qs.parse(url.parse(req.url).query),
+      session_id=params.session_id, session=sessions[session_id];
   req.session = session;
   if(!req.session){
-    res.simpleJSON(400, {error: "Access denied: invalid session."});
+    res.simpleJson(400, {error: "Access denied: invalid session."});
     return false;
   }
   return true;
 }
 
 
-fu.listen(PORT, HOST);
-fu.get("/", fu.staticHandler("public/index.html"));
-fu.get("/style.css", fu.staticHandler("public/style.css"));
-fu.get("/client.js", fu.staticHandler("public/client.js"));
-fu.get("/math.uuid.js", fu.staticHandler("public/math.uuid.js"));
-fu.get("/prototype.s2.min.js", fu.staticHandler("public/prototype.s2.min.js"));
+server.listen(PORT, HOST);
 
-fu.get("/join", function (req, res) {
-  var username = req.uri.params.username, password = req.uri.params.password;
-  var user = User.find(username, password);
+// Serve js, css, and png files as static resources
+server.get(/^(\/.+\.(?:jpg|html|js|css|png|ico|tci))$/, function (req, res, path) {
+ server.staticHandler(req, res, "public" + path);
+});
+
+// Render the login window
+// Render the login window
+server.get(/^\/$/, function (req, res) {
+  server.staticHandler(req, res, "public/index.html");
+});
+
+server.get("/join", function (req, res) {
+  var params = qs.parse(url.parse(req.url).query),
+      username = params.username, password = params.password,
+      user = User.find(username, password);
   if(!user){
-    res.simpleJSON(400, {error: "Username or password invalid."});
+    res.simpleJson(400, {error: "Username or password invalid."});
     return;
   } 
-  var room = Room.find(req.uri.params.room_id), session = new Session(user, room);
+  var room = Room.find(params.room_id), session = new Session(user, room);
   if (!session) {
-    res.simpleJSON(400, {error: "You do not have access to this room."});
+    res.simpleJson(400, {error: "You do not have access to this room."});
     return;
   }
   
   sys.puts("/join request: " + username);
-  res.simpleJSON(200, { session_id: session.session_id });
+  res.simpleJson(200, { session_id: session.session_id });
 });
 
-fu.get("/part", function (req, res) {
+server.get("/part", function (req, res) {
   req.session.destroy();
-  res.simpleJSON(200, { });
+  res.simpleJson(200, { });
 }.pipeline(withSession));
 
-fu.get("/updates", function (req, res) {
-  if (!("since" in req.uri.params)) {
-    res.simpleJSON(400, { error: "Must supply since parameter" });
+server.get("/updates", function (req, res) {
+  var params = qs.parse(url.parse(req.url).query);
+  if (!("since" in params)) {
+    res.simpleJson(400, { error: "Must supply since parameter" });
     return;
   }
-  var since = parseInt(req.uri.params.since, 10);
+  var since = parseInt(params.since, 10);
   req.session.poke();
   req.session.room.query(since, function (messages) {
     req.session.poke();
-    res.simpleJSON(200, { messages: messages });
+    res.simpleJson(200, { messages: messages });
   });
 }.pipeline(withSession));
 
-fu.get("/send", function(req, res) {
+server.get("/send", function(req, res) {
+  var params = qs.parse(url.parse(req.url).query);
   req.session.poke();
-  var message = req.uri.params; // Need to clean these
+  var message = params; // Need to clean these
   delete message["session_id"];
   message.username = req.session.user.username;
   message.time = new Date().getTime();
-  req.session.room.addMessage(req.uri.params);
-  res.simpleJSON(200, {});
+  req.session.room.addMessage(params);
+  res.simpleJson(200, {});
 }.pipeline(withSession));
+
+server.post("upload", function (req, res) {
+  req.setBodyEncoding('binary');
+
+  var stream = new multipart.Stream(req);
+  stream.addListener('part', function(part) {
+    part.addListener('body', function(chunk) {
+      var progress = (stream.bytesReceived / stream.bytesTotal * 100).toFixed(2);
+      var mb = (stream.bytesTotal / 1024 / 1024).toFixed(1);
+
+      sys.print("Uploading "+mb+"mb ("+progress+"%)\015");
+
+      // chunk could be appended to a file if the uploaded file needs to be saved
+    });
+  });
+  stream.addListener('complete', function() {
+    res.sendHeader(200, {'Content-Type': 'text/plain'});
+    res.sendBody('Thanks for playing!');
+    res.finish();
+    sys.puts("\n=> Done uploading");
+  });
+});
 
 repl.start("deco> ");

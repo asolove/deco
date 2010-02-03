@@ -190,7 +190,10 @@ function addCollageImage(id, src, pos){
   var image = new Element("img", {src:src, id: id, height: 200});
   positionAndAddElement(image, pos);
   attachEvents(image, pos);
-  sendCollageUpdate(Object.extend(pos, { id: id, src:src}))
+  if(!id) {
+    sendCollageUpdate(Object.extend(pos, { id: id, src:""}));
+  }
+  return image;
 }
 
 function addCollageText(id, text, pos) {
@@ -276,20 +279,99 @@ $(document).observe("dom:loaded", function(){
   }, true);
   collage.observe("drop", function(event) {
     event.stop();
-    handleDroppedFiles(event.dataTransfer, {x:event.layerX, y:event.layerY, r:0, s:1});
+    handleDroppedFiles(event, {x:event.layerX, y:event.layerY, r:0, s:1});
   }, true);
 });
 
-function handleDroppedFiles(dataTransfer, pos) {
+function handleDroppedFiles(event, pos) {
+  var dataTransfer = event.dataTransfer;
   if(!pos) pos = {x: 10, y:10, r: 0, s:1};
 	var files = $A(dataTransfer.files);
 	files.each(function(file){
 	  if(file.fileSize < 1000000) {
-		  var img = addCollageImage(undefined, "http://localhost/Desktop/"+file.fileName, pos);
+		  var img = addCollageImage(undefined, file.getAsDataURL(), pos);
+		  // uploadImage(file);
+		  // upload file data
+		  uploadImagesFromEvent(event);
 	  } else {
-  		alert("file is too big, needs to be below 1mb");
+  		alert("This file is too large. Please upload files less than 1mb.");
 	  }
 	});
 }
+
+function uploadImage(file, id) {
+  var type = file.type;
+  var name = file.name;
+  console.log(file);
+  var xhr = new XMLHttpRequest();
+  //xhr.upload.addEventListener("load", function(){sendCollageUpdate({id: id, src:"real source"});});
+  xhr.open("POST", "upload", true);
+	xhr.setRequestHeader("Content-Type", "multipart/form-data");
+	xhr.setRequestHeader("Content-Length", file.fileSize);  
+	xhr.sendAsBinary(file.getAsBinary());
+}
+
+function uploadImagesFromEvent(event) {
+
+    var data = event.dataTransfer;
+
+    var boundary = '------multipartformboundary' + (new Date).getTime();
+    var dashdash = '--';
+    var crlf     = '\r\n';
+
+    /* Build RFC2388 string. */
+    var builder = '';
+
+    builder += dashdash;
+    builder += boundary;
+    builder += crlf;
+
+    var xhr = new XMLHttpRequest();
+
+    /* For each dropped file. */
+    for (var i = 0; i < data.files.length; i++) {
+        var file = data.files[i];
+
+        /* Generate headers. */            
+        builder += 'Content-Disposition: form-data; name="user_file[]"';
+        if (file.fileName) {
+          builder += '; filename="' + file.fileName + '"';
+        }
+        builder += crlf;
+
+        builder += 'Content-Type: application/octet-stream';
+        builder += crlf;
+        builder += crlf; 
+
+        /* Append binary data. */
+        builder += file.getAsBinary();
+        builder += crlf;
+
+        /* Write boundary. */
+        builder += dashdash;
+        builder += boundary;
+        builder += crlf;
+    }
+
+    /* Mark end of the request. */
+    builder += dashdash;
+    builder += boundary;
+    builder += dashdash;
+    builder += crlf;
+
+    xhr.open("POST", "upload", true);
+    xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' 
+        + boundary);
+    xhr.sendAsBinary(builder);        
+
+    xhr.onload = function(event) { 
+        /* If we got an error display it. */
+        if (xhr.responseText) {
+            alert(xhr.responseText);
+        }
+        $("#dropzone").load("list.php?random=" +  (new Date).getTime());
+    };
+}
+
 	
 
