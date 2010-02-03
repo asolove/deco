@@ -1,13 +1,16 @@
 HOST = null; // localhost
 PORT = 8001;
 
-var server = require("../lib/node-router/node-router"),
-    sys = require("sys"),
+var sys = require("sys"),
+    http = require("http"),
     multipart = require("multipart"),
-    Dirty = require("../lib/node-dirty/lib/dirty").Dirty,
+    posix = require("posix"),
     repl = require("repl"),
     url = require("url"),
-    qs = require("querystring");
+    events = require("events"),
+    qs = require("querystring"),
+    Dirty = require("../lib/node-dirty/lib/dirty").Dirty,
+    router = require("../lib/node-router/node-router");
 
 var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 5 * 60 * 1000;
@@ -131,8 +134,9 @@ Function.prototype.pipeline = function(f){
 };
 
 function withSession(req, res){
-  var params = qs.parse(url.parse(req.url).query),
+  var params = qs.parse(url.parse(req.url).query || ""),
       session_id=params.session_id, session=sessions[session_id];
+  req.params = params;
   req.session = session;
   if(!req.session){
     res.simpleJson(400, {error: "Access denied: invalid session."});
@@ -141,21 +145,7 @@ function withSession(req, res){
   return true;
 }
 
-
-server.listen(PORT, HOST);
-
-// Serve js, css, and png files as static resources
-server.get(/^(\/.+\.(?:jpg|html|js|css|png|ico|tci))$/, function (req, res, path) {
- server.staticHandler(req, res, "public" + path);
-});
-
-// Render the login window
-// Render the login window
-server.get(/^\/$/, function (req, res) {
-  server.staticHandler(req, res, "public/index.html");
-});
-
-server.get("/join", function (req, res) {
+var join_request = function(req, res){
   var params = qs.parse(url.parse(req.url).query),
       username = params.username, password = params.password,
       user = User.find(username, password);
@@ -169,17 +159,17 @@ server.get("/join", function (req, res) {
     return;
   }
   
-  sys.puts("/join request: " + username);
+  sys.puts("joined: " + username);
   res.simpleJson(200, { session_id: session.session_id });
-});
+};
 
-server.get("/part", function (req, res) {
+var part_request = function(req, res){
   req.session.destroy();
   res.simpleJson(200, { });
-}.pipeline(withSession));
+}.pipeline(withSession);
 
-server.get("/updates", function (req, res) {
-  var params = qs.parse(url.parse(req.url).query);
+var updates_request = function(req, res){
+  var params = req.params;
   if (!("since" in params)) {
     res.simpleJson(400, { error: "Must supply since parameter" });
     return;
@@ -190,10 +180,10 @@ server.get("/updates", function (req, res) {
     req.session.poke();
     res.simpleJson(200, { messages: messages });
   });
-}.pipeline(withSession));
+}.pipeline(withSession);
 
-server.get("/send", function(req, res) {
-  var params = qs.parse(url.parse(req.url).query);
+var send_request = function(req, res){
+  var params = req.params;
   req.session.poke();
   var message = params; // Need to clean these
   delete message["session_id"];
@@ -201,28 +191,99 @@ server.get("/send", function(req, res) {
   message.time = new Date().getTime();
   req.session.room.addMessage(params);
   res.simpleJson(200, {});
-}.pipeline(withSession));
+}.pipeline(withSession);
 
-server.post("upload", function (req, res) {
-  req.setBodyEncoding('binary');
 
+var upload_request = function(req, res) {
+  sys.debug("Upload file request");
+  req.setBodyEncoding("binary");
   var stream = new multipart.Stream(req);
-  stream.addListener('part', function(part) {
-    part.addListener('body', function(chunk) {
-      var progress = (stream.bytesReceived / stream.bytesTotal * 100).toFixed(2);
-      var mb = (stream.bytesTotal / 1024 / 1024).toFixed(1);
-
-      sys.print("Uploading "+mb+"mb ("+progress+"%)\015");
-
-      // chunk could be appended to a file if the uploaded file needs to be saved
+  
+  var closePromise = new events.Promise();
+  
+  // Add handler for a request part received
+  stream.addListener("part", function(part) {
+    // FIXME: get multiple id's on upload, check unique/safe file name
+    var openPromise = null, filename = part.filename, item_id = req.params.id;
+    part.addListener("body", function(chunk) {    
+        if (!openPromise) openPromise = posix.open("./public/img/" + filename, process.O_CREAT | process.O_WRONLY, 0600);
+        openPromise.addCallback(function(fd) {
+          req.pause();
+          posix.write(fd, chunk).addCallback(function() {
+            req.resume();
+          });
+        });
+    });
+    
+    part.addListener("complete", function(){
+      sys.debug("File now available at: /img/"+filename);
+      req.session.room.addMessage(
+        { time: new Date().getTime()
+        , username: req.session.user.username
+        , id: item_id
+        , src: "/img/"+filename });
+        
+      openPromise.addCallback(function(fd){
+        posix.close(fd).addCallback(function() {
+          closePromise.emitSuccess();
+        });
+      });
     });
   });
-  stream.addListener('complete', function() {
-    res.sendHeader(200, {'Content-Type': 'text/plain'});
-    res.sendBody('Thanks for playing!');
-    res.finish();
-    sys.puts("\n=> Done uploading");
+  
+  stream.addListener("complete", function() {
+    closePromise.addCallback(function() {
+      sys.debug(" => file upload complete");
+      res.simpleJson(200, { });
+    });
   });
+}.pipeline(withSession);
+
+
+function addResponseOptions(res){
+  res.simpleJson = function (code, json, extra_headers) {
+		var body = JSON.stringify(json);
+    res.sendHeader(code, (extra_headers || []).concat(
+	                       [ ["Content-Type", "application/json"],
+                           ["Content-Length", body.length]
+                         ]));
+    res.sendBody(body);
+    res.finish();
+  };
+  return res;
+}
+
+var server = http.createServer(function(req, res) {
+  addResponseOptions(res);
+  
+  var path = url.parse(req.url).pathname.slice(1);
+  sys.puts("request for: "+path);
+  switch (path) {
+    case 'join':
+      join_request(req, res);
+      break;
+    case 'part':
+      part_request(req, res);
+      break;
+    case 'updates':
+      updates_request(req, res);
+      break;
+    case 'send':
+      send_request(req, res);
+      break;
+    case 'upload':
+      upload_request(req, res);
+      break;
+    case '':
+      router.staticHandler(req, res, 'public/index.html');
+      break;
+    default:
+      // FIXME: huge security issue
+      router.staticHandler(req, res, 'public/'+path);
+      break;
+  }
 });
+
+server.listen(8001);
 
 repl.start("deco> ");

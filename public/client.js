@@ -292,87 +292,44 @@ function handleDroppedFiles(event, pos) {
 	files.each(function(file){
 	  if(file.fileSize < 1000000) {
 		  var img = addCollageImage(undefined, file.getAsDataURL(), pos);
-		  // uploadImage(file);
-		  // upload file data
-		  uploadImagesFromEvent(event);
+		  uploadImageFile(file, img.id);
 	  } else {
   		alert("This file is too large. Please upload files less than 1mb.");
 	  }
 	});
 }
 
-function uploadImage(file, id) {
-  var type = file.type;
-  var name = file.name;
-  console.log(file);
-  var xhr = new XMLHttpRequest();
-  //xhr.upload.addEventListener("load", function(){sendCollageUpdate({id: id, src:"real source"});});
-  xhr.open("POST", "upload", true);
-	xhr.setRequestHeader("Content-Type", "multipart/form-data");
-	xhr.setRequestHeader("Content-Length", file.fileSize);  
-	xhr.sendAsBinary(file.getAsBinary());
-}
-
-function uploadImagesFromEvent(event) {
-
-    var data = event.dataTransfer;
-
-    var boundary = '------multipartformboundary' + (new Date).getTime();
-    var dashdash = '--';
-    var crlf     = '\r\n';
-
-    /* Build RFC2388 string. */
-    var builder = '';
-
-    builder += dashdash;
-    builder += boundary;
-    builder += crlf;
-
-    var xhr = new XMLHttpRequest();
-
-    /* For each dropped file. */
-    for (var i = 0; i < data.files.length; i++) {
-        var file = data.files[i];
-
-        /* Generate headers. */            
-        builder += 'Content-Disposition: form-data; name="user_file[]"';
-        if (file.fileName) {
-          builder += '; filename="' + file.fileName + '"';
-        }
-        builder += crlf;
-
-        builder += 'Content-Type: application/octet-stream';
-        builder += crlf;
-        builder += crlf; 
-
-        /* Append binary data. */
-        builder += file.getAsBinary();
-        builder += crlf;
-
-        /* Write boundary. */
-        builder += dashdash;
-        builder += boundary;
-        builder += crlf;
+function uploadImageFile(file, id) {
+  var boundary = '------multipartformboundary' + (new Date).getTime(),
+      xhr = new XMLHttpRequest(),
+      dashes = '--', crlf = '\r\n', result = dashes + boundary + crlf;
+       
+  result += 'Content-Disposition: form-data; name="user_file[]"';
+  if (file.fileName) {
+    result += '; filename="' + file.fileName + '"';
+  }
+  result += crlf;
+  
+  result += 'Content-Type: application/octet-stream' + crlf + crlf;
+  
+  /* Append binary data. */
+  result += file.getAsBinary();
+  result += crlf;
+  result += dashes + boundary + dashes + crlf;
+  
+  xhr.open("POST", "upload?session_id="+STATUS.session_id+"&id="+id);
+  xhr.overrideMimeType('text/plain; charset=x-user-defined-binary');
+  
+  xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' 
+      + boundary);
+  xhr.sendAsBinary(result);        
+  
+  xhr.onload = function(event) { 
+    /* If we got an error display it. */
+    if (xhr.responseText && xhr.responseText != "{}") {
+        alert(xhr.responseText);
     }
-
-    /* Mark end of the request. */
-    builder += dashdash;
-    builder += boundary;
-    builder += dashdash;
-    builder += crlf;
-
-    xhr.open("POST", "upload", true);
-    xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' 
-        + boundary);
-    xhr.sendAsBinary(builder);        
-
-    xhr.onload = function(event) { 
-        /* If we got an error display it. */
-        if (xhr.responseText) {
-            alert(xhr.responseText);
-        }
-        $("#dropzone").load("list.php?random=" +  (new Date).getTime());
-    };
+  };
 }
 
 	
