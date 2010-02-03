@@ -164,8 +164,6 @@ function updateCollageItem(node, message){
     var x = message.x || node._x, y=message.y || node._y, s=message.s || 1, r=message.r || 0;   
     node.style.cssText += ';z-index:'+(z++)+';left:'+x+'px;top:'+y+'px;';
     node.transform({ rotation: r, scale: s });
-    node._panX += x - node._x;
-    node._panY += y - node._y;
     node._x = x;
     node._y = y;
     node._rotation = r; node._r = r;
@@ -210,24 +208,20 @@ function addCollageText(id, text, pos) {
 }
 
 function attachEvents(node, pos){
-  node._origX = 0;
-  node._origY = 0;
   node.observe("manipulate:update", function(event){
     event.stop();
-    console.log(pos.x, node._origX, event.memo.panX, node._x);
     var s = collage._s, memo = event.memo;
-    var x1 = node._origX + (memo.panX-node._origX)/s,
-        y1 = pos.y + node._origY + (memo.panY-node._origY)/s,
-        r1 = memo.rotation, s1 = memo.scale;
+    var x1 = node._x + memo.panX/s,
+        y1 = node._y + memo.panY/s,
+        r1 = node._r = memo.rotation, 
+        s1 = node._s = memo.scale;
+        
+    
     if(s1 * s < .2) {
       node.remove(); return false;
     }
     node.style.cssText += ';z-index:'+(z++)+';left:'+x1+'px;top:'+y1+'px;';
     node.transform({ rotation: r1, scale: s1 });
-    node._x = x1;
-    node._y = y1;
-    node._r = r1;
-    node._s = s1;
   });
   
   node.observe("manipulate:start", function(event){
@@ -235,8 +229,11 @@ function attachEvents(node, pos){
     //node._origX = pO.left - pos.x; node._origY = pO.top - pos.y;
   });
   
-  node.observe("manipulate:end", function(event) {   
-    node._origX = node.positionedOffset().left;
+  node.observe("manipulate:end", function(event) {
+    var pO = node.positionedOffset();
+    node._panX = 0; node._panY = 0;
+    node._x = pO.left; node._y = pO.top;
+    
     sendCollageUpdate({id:node.id, x: node._x, y: node._y, r: node._r, s: node._s});
   });
 }
