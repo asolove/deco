@@ -7,3 +7,6 @@
 [submodule "lib/node-dirty"]
 	path = lib/node-dirty
 	url = git://github.com/felixge/node-dirty.git
+[submodule "lib/node-router"]
+	path = lib/node-router
+	url = git://github.com/creationix/node-router.git
