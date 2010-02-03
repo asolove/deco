@@ -169,6 +169,7 @@ function updateCollageItem(node, message){
     node._rotation = r; node._r = r;
     node._scale = s; node._scale = s;
   }
+  if(message._removed) node.remove();
   if(message.text) node.value = message.text;
   if(message.src) node.src = message.src;
   return false;
@@ -184,12 +185,11 @@ function positionAndAddElement(node, pos){
 
 function addCollageImage(id, src, pos){
   pos.x = pos.x || 0; pos.y = pos.y || 0; pos.s = pos.s || 1; pos.r = pos.r || 0;
-  if(!id) id = Math.uuid(10);
-  var image = new Element("img", {src:src, id: id, height: 200});
+  var image = new Element("img", {src:src, id: id ? id : Math.uuid(10), height: 200});
   positionAndAddElement(image, pos);
   attachEvents(image, pos);
-  if(!id) {
-    sendCollageUpdate(Object.extend(pos, { id: id, src:""}));
+  if(id === undefined) {
+    sendCollageUpdate(Object.extend(pos, { id: image.id, src:""}));
   }
   return image;
 }
@@ -218,7 +218,11 @@ function attachEvents(node, pos){
         
     
     if(s1 * s < .2) {
-      node.remove(); return false;
+      node._s = 0;
+      node._removed = true;
+      sendCollageUpdate({id: node.id, s: 0, _removed: true});
+      node.remove(); 
+      return false;
     }
     node.style.cssText += ';z-index:'+(z++)+';left:'+x1+'px;top:'+y1+'px;';
     node.transform({ rotation: r1, scale: s1 });
@@ -278,7 +282,7 @@ $(document).observe("dom:loaded", function(){
   }, true);
   collage.observe("drop", function(event) {
     event.stop();
-    handleDroppedFiles(event, {x:event.layerX, y:event.layerY, r:0, s:1});
+    handleDroppedFiles(event, {x:event.layerX-100, y:event.layerY-100, r:0, s:1});
   }, true);
   
   // Let users click in to form fields
@@ -292,6 +296,7 @@ function handleDroppedFiles(event, pos) {
 	var files = $A(dataTransfer.files);
 	files.each(function(file){
 	  if(file.fileSize < 1000000) {
+	    pos.x += 30; pos.y += 30;
 		  var img = addCollageImage(undefined, file.getAsDataURL(), pos);
 		  uploadImageFile(file, img.id);
 	  } else {
