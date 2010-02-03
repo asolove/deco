@@ -11,6 +11,7 @@ end
 task :ensure_db do
   `mkdir db`
   `mkdir db/room`
+  `mkdir public/img`
 end
 
 task :repl do
