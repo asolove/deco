@@ -1,5 +1,3 @@
-"use strict";
-
 // Utilities
 util = {
   urlRE: /https?:\/\/([-\w\.]+)+(:\d+)?(\/([^\s]*(\?\S+)?)?)?/g, 
@@ -281,6 +279,10 @@ $(document).observe("dom:loaded", function(){
     event.stop();
     handleDroppedFiles(event, {x:event.layerX, y:event.layerY, r:0, s:1});
   }, true);
+  
+  // Let users click in to form fields
+  $("username").observe("click", function() { $("username").focus(); });
+  $("password").observe("click", function() { $("password").focus(); });
 });
 
 function handleDroppedFiles(event, pos) {
