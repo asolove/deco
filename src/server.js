@@ -1,14 +1,16 @@
 HOST = null; // localhost
 PORT = 8001;
 
-var sys = require("sys"),
+var events = require("events"),
     http = require("http"),
     multipart = require("multipart"),
+    path = require("path"),
     posix = require("posix"),
-    repl = require("repl"),
-    url = require("url"),
-    events = require("events"),
     qs = require("querystring"),
+    repl = require("repl"),
+    sys = require("sys"),
+    url = require("url"),
+    
     Dirty = require("../lib/node-dirty/lib/dirty").Dirty,
     router = require("../lib/node-router/node-router");
 
@@ -159,7 +161,6 @@ var join_request = function(req, res){
     return;
   }
   
-  sys.puts("joined: " + username);
   res.simpleJson(200, { session_id: session.session_id });
 };
 
@@ -195,7 +196,6 @@ var send_request = function(req, res){
 
 
 var upload_request = function(req, res) {
-  sys.debug("Upload file request");
   req.setBodyEncoding("binary");
   var stream = new multipart.Stream(req);
   
@@ -204,7 +204,7 @@ var upload_request = function(req, res) {
   // Add handler for a request part received
   stream.addListener("part", function(part) {
     // FIXME: get multiple id's on upload, check unique/safe file name
-    var openPromise = null, filename = part.filename, item_id = req.params.id;
+    var openPromise = null, item_id = req.params.id, filename = item_id + path.extname(part.filename);
     part.addListener("body", function(chunk) {    
         if (!openPromise) openPromise = posix.open("./public/img/" + filename, process.O_CREAT | process.O_WRONLY, 0600);
         openPromise.addCallback(function(fd) {
@@ -233,7 +233,6 @@ var upload_request = function(req, res) {
   
   stream.addListener("complete", function() {
     closePromise.addCallback(function() {
-      sys.debug(" => file upload complete");
       res.simpleJson(200, { });
     });
   });
