@@ -279,7 +279,7 @@ var server = http.createServer(function(req, res) {
       break;
     default:
       // FIXME: huge security issue
-      router.staticHandler(req, res, 'public/'+path);
+      router.staticHandler(req, res, 'public/'+qs.unescape(path));
       break;
   }
 });
