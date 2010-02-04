@@ -15,7 +15,7 @@ var events = require("events"),
     router = require("../lib/node-router/node-router");
 
 var MESSAGE_BACKLOG = 200;
-var SESSION_TIMEOUT = 5 * 60 * 1000;
+var SESSION_TIMEOUT = 15 * 60 * 1000;
 
 
 /*
@@ -215,6 +215,14 @@ var send_request = function(req, res){
   res.simpleJson(200, {});
 }.pipeline(withSession);
 
+var feedback_request = function(req, res){
+  var params = qs.parse(url.parse(req.url).query || ""),
+      session_id=params.session_id, session=sessions[session_id];
+  if(session_id){
+    params.username = sessions[session_id].user.username;
+  }
+  sys.debug("FEEDBACK: " + JSON.stringify(params));
+};
 
 var upload_request = function(req, res) {
   req.setBodyEncoding("binary");
@@ -294,6 +302,8 @@ var server = http.createServer(function(req, res) {
     case 'upload':
       upload_request(req, res);
       break;
+    case 'feedback':
+      feedback_request(req, res);
     case '':
       router.staticHandler(req, res, 'public/index.html');
       break;

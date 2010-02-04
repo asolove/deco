@@ -251,12 +251,11 @@ collageViewportOffset = function(){
 };
 
 $(document).observe("dom:loaded", function(){
-  collage = $("collage"); chat = $("chat");
+  collage = $("collage");
   
   
   var pos=[window.innerWidth/2, window.innerHeight/2, 0, 1];
   
-  collage._s = 1;
   collage.observe("manipulate:update", function(event){
     collage.focus(); // blur text inputs
     collage.style.cssText += 
@@ -288,6 +287,19 @@ $(document).observe("dom:loaded", function(){
   // Let users click in to form fields
   $("username").observe("click", function() { $("username").focus(); });
   $("password").observe("click", function() { $("password").focus(); });
+  
+  $("help-dialog").hide();
+  $("help-dialog").observe("submit", function(event){
+    event.stop();
+    new Ajax.Request("/feedback", {
+      method: 'get',
+      parameters: {session_id: STATUS.session_id, comments: $("comments").value }
+    });
+    $("help-dialog").hide();
+    return false;
+  });
+  $("help").observe("click", function(){ $("help-dialog").show(); $("comments").focus(); });
+  $("comments").observe("click", function() { $("comments").focus(); });
 });
 
 function handleDroppedFiles(event, pos) {
