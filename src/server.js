@@ -18,10 +18,16 @@ var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 5 * 60 * 1000;
 
 
+/*
+
+Models 
+
+*/
+
 // Users
 var users = GLOBAL.users = {};
 
-var User = GLOBAL.User = function(username, password){
+var User = GLOBAL.User = function(username, password, room_id){
   if(username.length > 50) return null;
   if(/[^\w_\-^!]/.exec(username)) return null;
   if(username in users) return null;
@@ -29,6 +35,7 @@ var User = GLOBAL.User = function(username, password){
   this.username = username;
   this.password = password;
   users[this.username] = this;
+  this.room_id = room_id;
 };
 
 User.valid = function(user){
@@ -42,10 +49,6 @@ User.find = function(username, password){
     return false;
   }
 };
-
-new User("asolove", "test");
-new User("someone", "test");
-
 
 // Rooms
 var rooms = new Array(); // set to current length of rooms
@@ -65,8 +68,6 @@ Room.find = function(id){
 Room.valid = function(room){
   return room.constructor == Room && room.id in rooms && rooms[room.id] == room;
 };
-
-var the_room = GLOBAL.the_room = new Room([]);
 
 Room.prototype.allMessages = function(){
   return this.messages.filter(function(){return true;});
@@ -127,6 +128,26 @@ setInterval(Session.timeout, 1000);
 
 
 
+/*
+
+BETA TEST accounts
+
+*/
+var test_room = GLOBAL.test_room = new Room([]);
+var modalinc_room = GLOBAL.modalinc_room = new Room([]);
+
+new User("asolove", "test", test_room.id);
+new User("ssolove", "betafish", test_room.id);
+new User("dcaulk", "betafish", modalinc_room.id);
+
+
+
+/* 
+
+CONTROLLERS
+
+*/
+
 // Controller pipelines
 Function.prototype.pipeline = function(f){
   var wrapped = this;
@@ -155,7 +176,7 @@ var join_request = function(req, res){
     res.simpleJson(400, {error: "Username or password invalid."});
     return;
   } 
-  var room = Room.find(params.room_id), session = new Session(user, room);
+  var room = Room.find(user.room_id), session = new Session(user, room);
   if (!session) {
     res.simpleJson(400, {error: "You do not have access to this room."});
     return;
