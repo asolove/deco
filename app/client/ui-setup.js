@@ -1,7 +1,6 @@
 document.observe("dom:loaded", function() {
 
   // Log In screen
-  console.log("registering handlers for", $("username"))
   $("username").observe("click", function(e) { e.stop(); $("username").focus(); });
   $("password").observe("click", function(e) { e.stop(); $("password").focus(); });
   $("login-form").observe('submit', function (e) {
