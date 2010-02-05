@@ -10,7 +10,7 @@ new User("ssolove", "betafish2", [ec_room.id]);
 new User("energycentral", "betablocker7", [ec_room.id]);
 
 var modalinc_room = GLOBAL.modalinc_room = new Room([]);
-new User("dcaulk", "betafish1", [modalinc_room.id]);
+new User("dcaulk", "betaboost9", [modalinc_room.id]);
 new User("modalinc", "betarisk5", [modalinc_room.id]);
 
 var kpowers_room = GLOBAL.kpowers_room = new Room([]);
