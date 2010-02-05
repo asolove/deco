@@ -219,7 +219,6 @@ function updateRooms(room_list){
 }
 
 function updateUsers(users){
-  console.log("updating users with", users);
   STATUS.users = {};
   var badges = $("badges"), badge;
 
