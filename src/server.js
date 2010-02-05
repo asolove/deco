@@ -134,11 +134,32 @@ BETA TEST accounts
 
 */
 var test_room = GLOBAL.test_room = new Room([]);
-var modalinc_room = GLOBAL.modalinc_room = new Room([]);
-
 new User("asolove", "test", test_room.id);
-new User("ssolove", "betafish", test_room.id);
-new User("dcaulk", "betafish", modalinc_room.id);
+
+var ec_room = GLOBAL.ec_room = new Room([]);
+new User("ssolove", "betafish2", ec_room.id);
+new User("energycentral", "betablocker7", ec_room.id);
+
+var modalinc_room = GLOBAL.modalinc_room = new Room([]);
+new User("dcaulk", "betafish1", modalinc_room.id);
+new User("modalinc", "betarisk5", modalinc_room.id);
+
+var kpowers_room = GLOBAL.kpowers_room = new Room([]);
+new User("kpowers", "alphabeta3", kpowers_room.id);
+new User("kpowers_guest", "betaboost8", kpowers_room.id);
+
+var markf_room = GLOBAL.markf_room = new Room([]);
+new User("markf", "betatastic2"); // mark
+new User("markf_guest", "betaboost0");
+
+var daltonlp_room = GLOBAL.daltonlp_room = new Room([]);
+new User("daltonlp", "betafish4", daltonlp_room.id); // daltonlp@gmail.com
+new User("daltonlp_guest", "alphabeta8", daltonlp_room.id); 
+
+var teddywing_room = GLOBAL.teddywing_room = new Room([]);
+new User("fig", "betafish9", teddywing_room.id); // fig@teddywing.com
+new User("fig_guest", "betafish6", teddywing_room.id);
+
 
 
 
