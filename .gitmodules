@@ -10,3 +10,16 @@
 [submodule "lib/node-router"]
 	path = lib/node-router
 	url = git://github.com/creationix/node-router.git
+[submodule "vendor/spectacular"]
+	path = vendor/spectacular
+	url = git://github.com/jcrosby/spectacular.git
+[submodule "vendor/sessions"]
+	path = vendor/sessions
+	url = git://github.com/Miksago/node.js-sessions.git
+[submodule "vendor/node-dirty"]
+	path = vendor/node-dirty
+	url = git://github.com/felixge/node-dirty.git
+[submodule "vendor/node-router"]
+	path = vendor/node-router
+	url = git://github.com/creationix/node-router.git
+
