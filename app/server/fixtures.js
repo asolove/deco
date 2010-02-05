@@ -22,11 +22,11 @@ new User("markf", "betatastic2", [markf_room.id]); // mark
 new User("markf_guest", "betaboost0", [markf_room.id]);
 
 var daltonlp_room = GLOBAL.daltonlp_room = new Room([]);
-new User("daltonlp", "betafish4", [daltonlp_room.id]); // daltonlp@gmail.com
+new User("daltonlp", "betaboost8", [daltonlp_room.id]); // daltonlp@gmail.com
 new User("daltonlp_guest", "alphabeta8", [daltonlp_room.id]); 
 
 var teddywing_room = GLOBAL.teddywing_room = new Room([]);
-new User("fig", "betaboost8", [teddywing_room.id]); // fig@teddywing.com
+new User("fig", "betaboost9", [teddywing_room.id]); // fig@teddywing.com
 new User("fig_guest", "betafish6", [teddywing_room.id]);
 
 

@@ -393,8 +393,9 @@ function handleDroppedFiles(event, pos) {
 }
 document.observe("dom:loaded", function() {
 
-  $("username").observe("click", function() { $("username").focus(); });
-  $("password").observe("click", function() { $("password").focus(); });
+  console.log("registering handlers for", $("username"))
+  $("username").observe("click", function(e) { e.stop(); $("username").focus(); });
+  $("password").observe("click", function(e) { e.stop(); $("password").focus(); });
   $("login-form").observe('submit', function (e) {
     e.stop();
     var username = $("username").value, password = $("password").value;
