@@ -23,80 +23,9 @@ var SESSION_TIMEOUT = 15 * 60 * 1000;
 Models 
 
 */
+var users = GLOBAL.users = require("./users");
+var rooms = GLOBAL.rooms = require("./rooms");
 
-// Users
-var users = GLOBAL.users = {};
-var users = GLOBAL.users = new Dirty("db/users", {flushInterval: 10});
-
-var User = GLOBAL.User = function(username, password, room_ids){
-  if(username.length > 50) return null;
-  if(/[^\w_\-^!]/.exec(username)) return null;
-  if(username in users) return null;
-  
-  this.username = username;
-  this.password = password;
-  users[this.username] = this;
-  this.room_ids = room_ids;
-};
-
-User.valid = function(user){
-  return user.constructor == User && user.username in users && users[user.username] == user;
-};
-User.find = function(username, password){
-  var user = false;
-  if((user = users[username]) && (user.password = password)){
-    return user;
-  } else {
-    return false;
-  }
-};
-
-// Rooms
-var rooms = new Array(); // set to current length of rooms
-
-var Room = GLOBAL.Room = function(name, messages){
-  var room = this;
-  room.callbacks = [];
-  room.name = name;
-  room.id = rooms.length;
-  room.messages = new Dirty("db/room/"+room.id, {flushInterval: 10});
-  room.messages.load();
-  rooms[room.id] = room;
-  setInterval(function(){room.clearCallbacks();}, 1000);
-};
-Room.find = function(id){
-  return rooms[id];
-};
-Room.valid = function(room){
-  return room.constructor == Room && room.id in rooms && rooms[room.id] == room;
-};
-
-Room.prototype.allMessages = function(){
-  return this.messages.filter(function(){return true;});
-};
-
-Room.prototype.addMessage = function(message){
-  this.messages.add(message);
-  this.callbacks.forEach(function(c){c.callback([message]);});
-};
-
-Room.prototype.query = function(since, callback){
-  if(since == 1 && this.messages.length > 1) callback(this.allMessages());
-  
-  var res = this.messages.filter(function(m){ return(m.time > since); });
-  if(res.length > 0){
-    callback(res);
-  } else {
-    this.callbacks.push({callback: callback, time: new Date()});
-  }
-};
-
-Room.prototype.clearCallbacks = function(){
-  var now = new Date();
-  while (this.callbacks.length > 0 && now - this.callbacks[0].time > 30*1000) {
-    this.callbacks.shift().callback([]);
-  }
-};
 
 
 
@@ -104,8 +33,10 @@ Room.prototype.clearCallbacks = function(){
 var sessions = GLOBAL.sessions = {};
 
 var Session = GLOBAL.Session = function(user, room){
-  if(!User.valid(user)) return null;
-  if(!Room.valid(room)) return null;
+  if(!users.valid(user)) return null;
+  if(!(room.id in user.room_ids)) return null;
+  if(!rooms.valid(room)) return null;
+  
   // FIXME add access control based on user: if invalid, return false;
   
   this.user = user;
@@ -127,42 +58,6 @@ Session.timeout = function(){
   }
 };
 setInterval(Session.timeout, 1000);
-
-
-
-/*
-
-BETA TEST accounts
-
-*/
-var test_room = GLOBAL.test_room = new Room([]);
-
-var ec_room = GLOBAL.ec_room = new Room([]);
-new User("ssolove", "betafish2", [ec_room.id]);
-new User("energycentral", "betablocker7", [ec_room.id]);
-
-var modalinc_room = GLOBAL.modalinc_room = new Room([]);
-new User("dcaulk", "betafish1", [modalinc_room.id]);
-new User("modalinc", "betarisk5", [modalinc_room.id]);
-
-var kpowers_room = GLOBAL.kpowers_room = new Room([]);
-new User("kpowers", "alphabeta3", [kpowers_room.id]);
-new User("kpowers_guest", "betaboost8", [kpowers_room.id]);
-
-var markf_room = GLOBAL.markf_room = new Room([]);
-new User("markf", "betatastic2", [markf_room.id]); // mark
-new User("markf_guest", "betaboost0", [markf_room.id]);
-
-var daltonlp_room = GLOBAL.daltonlp_room = new Room([]);
-new User("daltonlp", "betafish4", [daltonlp_room.id]); // daltonlp@gmail.com
-new User("daltonlp_guest", "alphabeta8", [daltonlp_room.id]); 
-
-var teddywing_room = GLOBAL.teddywing_room = new Room([]);
-new User("fig", "betafish9", [teddywing_room.id]); // fig@teddywing.com
-new User("fig_guest", "betafish6", [teddywing_room.id]);
-
-
-new User("asolove", "test", [test_room.id, teddywing_room.id, daltonlp_room.id, kpowers_room.id, ec_room.id]);
 
 
 
@@ -196,7 +91,7 @@ function withSession(req, res){
 var join_request = function(req, res){
   var params = qs.parse(url.parse(req.url).query || ""),
       username = params.username, password = params.password,
-      user = User.find(username, password),
+      user = users.find(username, password),
       room_id = params.room_id || user.room_ids[0];
       
   if(params.room_id && params.session_id) {
@@ -207,7 +102,7 @@ var join_request = function(req, res){
     res.simpleJson(400, {error: "Username or password invalid."});
     return;
   } 
-  var room = Room.find(room_id), session = new Session(user, room);
+  var room = rooms.find(room_id), session = new Session(user, room);
   join_response(res, session);
 };
 
