@@ -8,7 +8,7 @@ rooms.list.load();
 
 
 var Room = GLOBAL.Room = function(room_data){
-  var room = this;
+  var room = this, room_data = room_data || {};
   room.callbacks = [];
   room.name = room_data.name;
   room.id = room_data.id;
@@ -37,6 +37,7 @@ rooms.list_for_user = function(user, session_room_id){
   var res = [];
   for(var i = 0, l = user.room_ids.length; i<l; i++){
     var room = rooms.list.get(user.room_ids[i]);
+    if(!room) continue;
     res.push([room.id, room.name, session_room_id == room.id ? true : undefined]);
   }
   return res;

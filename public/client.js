@@ -45,9 +45,9 @@ function getUsers () {
   });
 }
 
-function sendJoin(username, password, room_id) {
+function sendJoin(username, password, room_id, name) {
   new Ajax.Request("/join", {
-    parameters: room_id ? { room_id: room_id, session_id : STATUS.session_id } : { username: username, password: password },
+    parameters: room_id ? { room_id: room_id, name: name, session_id : STATUS.session_id } : { username: username, password: password },
     method: 'get',
     onError: showLogin,
     onSuccess: joinSuccess
@@ -221,7 +221,7 @@ function updateRooms(room_list){
   var room_select = $("rooms"), id, name, option;
   $A(room_select.children).each(function(e){ e.remove();});
 
-  room_list.unshift(["new", "+ Create new room"])
+  room_list.unshift(["new", "+ Create new room"]);
   room_list.each(function(room){
     id = room[0]; name = room[1];
     option = new Element('option', { value: id, selected: room[2] }).insert(name);
@@ -247,7 +247,10 @@ function collageUpdate(message){
 };
 
 function roomSwitch(room_id){
-  sendJoin(undefined, undefined, room_id);
+  if(room_id == "new"){
+    var name = prompt("Pick a name for your new room:");
+  }
+  sendJoin(undefined, undefined, room_id, name);
   setUp();
 }
 

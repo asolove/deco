@@ -93,7 +93,9 @@ var join_request = function(req, res){
       username = params.username, password = params.password,
       user = users.find(username, password),
       room_id = params.room_id || (user && user.room_ids[0]);
-      
+  if(params.name && params.session_id){
+    join_new_room_request(req, res);
+  }
   if("room_id" in params && params.session_id) {
     join_room_request(req, res);
     return false;
@@ -114,9 +116,20 @@ var join_response = function(res, session){
   res.simpleJson(200, { session_id: session.session_id, rooms: rooms.list_for_user(session.user, session.room.id) });
 };
 
+var join_new_room_request = function(req, res){
+  var room = rooms.make(qs.unescape(req.params["name"]));
+  req.session.user.room_ids.push(room.id);
+  req.params.room_id = room.id;
+  users.save(req.session.user);
+  
+  var session = new Session(req.session.user, room);
+  join_response(res, session);
+  req.session.destroy();
+}.pipeline(withSession);
+
 var join_room_request = function(req, res){
   var session = new Session(req.session.user, rooms.find(req.params.room_id));
-  
+
   join_response(res, session);
   req.session.destroy();
 }.pipeline(withSession);
