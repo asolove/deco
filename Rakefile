@@ -1,6 +1,6 @@
 task :default => :start
 
-task :start => :ensure_db do
+task :start => [:ensure_db, :make_js] do
   system 'rlwrap node app/server/server.js'
 end
 
