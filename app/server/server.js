@@ -47,6 +47,14 @@ var Session = GLOBAL.Session = function(user, room){
   room.addMessage({users: users.color_list(arguments.callee.users_in_room(room.id))});
 };
 
+Session.current = function(){
+  res = [];
+  for(var i in sessions){
+    res.push(sessions[i].user.username);
+  }
+  return res;
+}
+
 Session.prototype.poke = function() { this.time = new Date(); };
 Session.prototype.destroy = function() { 
   delete sessions[this.session_id]; 
