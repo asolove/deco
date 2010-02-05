@@ -56,7 +56,7 @@ function getUsers () {
 // Or use your existing session to join a new room.
 function sendJoin(username, password, room_id) {
   new Ajax.Request("/join", {
-    parameters: room_id ? { room_id: room_id } : { username: username, password: password },
+    parameters: room_id ? { room_id: room_id, session_id : STATUS.session_id } : { username: username, password: password },
     method: 'get',
     onError: showLogin,
     onSuccess: joinSuccess

@@ -9,11 +9,28 @@ function joinSuccess (res) {
     return;
   }
   
+  
+  
   STATUS.user = session.user;
   STATUS.session_id = session.session_id;
   
   getUpdates();
   showCollage();
+  updateRooms(session.rooms);
+}
+
+function updateRooms(room_list){
+  var room_select = $("rooms"), id, name, option;
+  $A(room_select.children).each(function(e){ e.remove();});
+  
+  room_list.unshift(["new", "+ Create new room"])
+  room_list.each(function(room){
+    id = room[0]; name = room[1];
+    option = new Element('option', { value: id, selected: room[2] }).insert(name);
+    room_select.insert(option);
+  });
+  if(room_list.length > 1) room_select.show();
+  return true;
 }
 
 // 
@@ -33,23 +50,28 @@ function collageUpdate(message){
   }
 };
 
+function roomSwitch(room_id){
+  sendJoin(undefined, undefined, room_id);
+  setUp();
+}
 
+
+var collage, z = 1;
+function setUp(){
+  $A(collage.children).each(function(e){ e.remove();});
+  var z = 1;
+  STATUS.collageItems = {};
+  STATUS.last_update_time = 1;
+}
 
 // UI States
-function showLogin(){  $("login").show(); $("username").focus(); $("collage").hide(); }
+function showLogin(){  $("login").show(); $("username").focus(); $("collage").hide(); $("rooms").hide(); }
 function showCollage(){$("login").hide(); $("collage").show(); }
 function showLoad(){ }
 
-// Events
-
-
-// ***************
-// Collage portion
-// ***************
 
 // Globals
 S2.enableMultitouchSupport = true;
-var collage, chat, z = 1;
 
 // UI events
 function updateCollageItem(node, message){

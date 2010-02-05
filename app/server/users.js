@@ -4,6 +4,7 @@ var rooms = GLOBAL.rooms = require("./rooms");
 var users = exports;
 
 users.list = new Dirty("db/users", {flushInterval:10});
+users.list.load();
 
 users.make = function(username, password, room_ids){
   if(username.length > 50) return null;

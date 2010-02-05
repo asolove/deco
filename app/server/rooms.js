@@ -4,6 +4,7 @@ var users = GLOBAL.users = require("./users");
 var rooms = exports;
 
 rooms.list = new Dirty("db/rooms", {flushInterval:10});
+rooms.list.load();
 
 
 var Room = GLOBAL.Room = function(room_data){
@@ -30,6 +31,15 @@ rooms.save = function(room){
 rooms.find = function(id){
   var room_data = rooms.list.get(id);
   return new Room(room_data);
+};
+
+rooms.list_for_user = function(user, session_room_id){
+  var res = [];
+  for(var i = 0, l = user.room_ids.length; i<l; i++){
+    var room = rooms.list.get(user.room_ids[i]);
+    res.push([room.id, room.name, session_room_id == room.id ? true : undefined]);
+  }
+  return res;
 };
 
 rooms.valid = function(room){

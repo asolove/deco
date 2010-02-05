@@ -34,7 +34,7 @@ var sessions = GLOBAL.sessions = {};
 
 var Session = GLOBAL.Session = function(user, room){
   if(!users.valid(user)) return null;
-  if(!(room.id in user.room_ids)) return null;
+  if(!(user.room_ids.indexOf(room.id) > -1)) return null;
   if(!rooms.valid(room)) return null;
   
   // FIXME add access control based on user: if invalid, return false;
@@ -92,9 +92,9 @@ var join_request = function(req, res){
   var params = qs.parse(url.parse(req.url).query || ""),
       username = params.username, password = params.password,
       user = users.find(username, password),
-      room_id = params.room_id || user.room_ids[0];
+      room_id = params.room_id || (user && user.room_ids[0]);
       
-  if(params.room_id && params.session_id) {
+  if("room_id" in params && params.session_id) {
     join_room_request(req, res);
     return false;
   }
@@ -111,11 +111,13 @@ var join_response = function(res, session){
     res.simpleJson(400, {error: "You do not have access to this room."});
     return;
   }
-  res.simpleJson(200, { session_id: session.session_id });
+  res.simpleJson(200, { session_id: session.session_id, rooms: rooms.list_for_user(session.user, session.room.id) });
 };
 
 var join_room_request = function(req, res){
-  join_response(new Session(req.session.user, req.params.room_id));
+  var session = new Session(req.session.user, rooms.find(req.params.room_id));
+  
+  join_response(res, session);
   req.session.destroy();
 }.pipeline(withSession);
 
