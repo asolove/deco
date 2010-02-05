@@ -255,7 +255,7 @@ $(document).observe("dom:loaded", function(){
   
   
   var pos=[window.innerWidth/2, window.innerHeight/2, 0, 1];
-  
+  collage._s = 1;
   collage.observe("manipulate:update", function(event){
     collage.focus(); // blur text inputs
     collage.style.cssText += 
@@ -289,12 +289,14 @@ $(document).observe("dom:loaded", function(){
   $("password").observe("click", function() { $("password").focus(); });
   
   $("help-dialog").hide();
+  $("close-feedback").observe("click", function(){$("help-dialog").hide();})
   $("help-dialog").observe("submit", function(event){
     event.stop();
     new Ajax.Request("/feedback", {
       method: 'get',
       parameters: {session_id: STATUS.session_id, comments: $("comments").value }
     });
+    $("comments").value = "";
     $("help-dialog").hide();
     return false;
   });
