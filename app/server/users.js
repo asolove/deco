@@ -6,11 +6,17 @@ var users = exports;
 users.list = new Dirty("db/users", {flushInterval:10});
 users.list.load();
 
-users.make = function(username, password, room_ids){
+colors = ["#00a5f8", "#ffd503", "#8200f8", "#16ff91", "#ff1be7", "#00e400", "#e89e00"];
+
+users.make = function(username, password, room_ids, color){
   if(username.length > 50) return null;
   if(/[^\w_\-^!]/.exec(username)) return null;
   if(username in users) return null;
-  var user = {username:username, password:password, room_ids:room_ids};
+  var user = { username:username
+             , password:password
+             , room_ids:room_ids
+             , color: color || colors[users.list.length % colors.length]
+             };
   users.list.set(username, user);
   return user;
 };
@@ -36,12 +42,11 @@ users.find = function(username, password){
   return false;
 };
 
-colors = ["#00a5f8", "#ffd503", "#8200f8", "#16ff91"];
 
 users.color_list = function(users){
   var res = [];
   for(var i=0,l=users.length;i<l;i++){
-    res.push([users[i].username, colors[i%colors.length]]);
+    res.push([users[i].username, users[i].color]);
   }
   return res;
 };

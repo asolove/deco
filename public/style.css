@@ -127,7 +127,7 @@ body {
 
 .badge {
   font-size:87%;
-  border:1px solid #ccc;
+  border:1px solid #000;
   -moz-border-radius:4px;
   margin-right:10px;
   float:left;
