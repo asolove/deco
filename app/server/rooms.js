@@ -6,6 +6,8 @@ var rooms = exports;
 rooms.list = new Dirty("db/rooms", {flushInterval:10});
 rooms.list.load();
 
+rooms.cache = {};
+
 
 var Room = GLOBAL.Room = function(room_data){
   var room = this, room_data = room_data || {};
@@ -29,8 +31,10 @@ rooms.save = function(room){
 };
 
 rooms.find = function(id){
+  if(id in rooms.cache) return rooms.cache[id];
   var room_data = rooms.list.get(id);
-  return new Room(room_data);
+  var room = rooms.cache[id] = new Room(room_data);
+  return room;
 };
 
 rooms.list_for_user = function(user, session_room_id){
