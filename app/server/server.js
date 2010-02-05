@@ -26,8 +26,9 @@ Models
 
 // Users
 var users = GLOBAL.users = {};
+var users = GLOBAL.users = new Dirty("db/users", {flushInterval: 10});
 
-var User = GLOBAL.User = function(username, password, room_id){
+var User = GLOBAL.User = function(username, password, room_ids){
   if(username.length > 50) return null;
   if(/[^\w_\-^!]/.exec(username)) return null;
   if(username in users) return null;
@@ -35,7 +36,7 @@ var User = GLOBAL.User = function(username, password, room_id){
   this.username = username;
   this.password = password;
   users[this.username] = this;
-  this.room_id = room_id;
+  this.room_ids = room_ids;
 };
 
 User.valid = function(user){
@@ -53,9 +54,10 @@ User.find = function(username, password){
 // Rooms
 var rooms = new Array(); // set to current length of rooms
 
-var Room = GLOBAL.Room = function(messages){
+var Room = GLOBAL.Room = function(name, messages){
   var room = this;
   room.callbacks = [];
+  room.name = name;
   room.id = rooms.length;
   room.messages = new Dirty("db/room/"+room.id, {flushInterval: 10});
   room.messages.load();
@@ -134,31 +136,33 @@ BETA TEST accounts
 
 */
 var test_room = GLOBAL.test_room = new Room([]);
-new User("asolove", "test", test_room.id);
 
 var ec_room = GLOBAL.ec_room = new Room([]);
-new User("ssolove", "betafish2", ec_room.id);
-new User("energycentral", "betablocker7", ec_room.id);
+new User("ssolove", "betafish2", [ec_room.id]);
+new User("energycentral", "betablocker7", [ec_room.id]);
 
 var modalinc_room = GLOBAL.modalinc_room = new Room([]);
-new User("dcaulk", "betafish1", modalinc_room.id);
-new User("modalinc", "betarisk5", modalinc_room.id);
+new User("dcaulk", "betafish1", [modalinc_room.id]);
+new User("modalinc", "betarisk5", [modalinc_room.id]);
 
 var kpowers_room = GLOBAL.kpowers_room = new Room([]);
-new User("kpowers", "alphabeta3", kpowers_room.id);
-new User("kpowers_guest", "betaboost8", kpowers_room.id);
+new User("kpowers", "alphabeta3", [kpowers_room.id]);
+new User("kpowers_guest", "betaboost8", [kpowers_room.id]);
 
 var markf_room = GLOBAL.markf_room = new Room([]);
-new User("markf", "betatastic2", markf_room.id); // mark
-new User("markf_guest", "betaboost0", markf_room.id);
+new User("markf", "betatastic2", [markf_room.id]); // mark
+new User("markf_guest", "betaboost0", [markf_room.id]);
 
 var daltonlp_room = GLOBAL.daltonlp_room = new Room([]);
-new User("daltonlp", "betafish4", daltonlp_room.id); // daltonlp@gmail.com
-new User("daltonlp_guest", "alphabeta8", daltonlp_room.id); 
+new User("daltonlp", "betafish4", [daltonlp_room.id]); // daltonlp@gmail.com
+new User("daltonlp_guest", "alphabeta8", [daltonlp_room.id]); 
 
 var teddywing_room = GLOBAL.teddywing_room = new Room([]);
-new User("fig", "betafish9", teddywing_room.id); // fig@teddywing.com
-new User("fig_guest", "betafish6", teddywing_room.id);
+new User("fig", "betafish9", [teddywing_room.id]); // fig@teddywing.com
+new User("fig_guest", "betafish6", [teddywing_room.id]);
+
+
+new User("asolove", "test", [test_room.id, teddywing_room.id, daltonlp_room.id, kpowers_room.id, ec_room.id]);
 
 
 
@@ -192,19 +196,33 @@ function withSession(req, res){
 var join_request = function(req, res){
   var params = qs.parse(url.parse(req.url).query || ""),
       username = params.username, password = params.password,
-      user = User.find(username, password);
+      user = User.find(username, password),
+      room_id = params.room_id || user.room_ids[0];
+      
+  if(params.room_id && params.session_id) {
+    join_room_request(req, res);
+    return false;
+  }
   if(!user){
     res.simpleJson(400, {error: "Username or password invalid."});
     return;
   } 
-  var room = Room.find(user.room_id), session = new Session(user, room);
+  var room = Room.find(room_id), session = new Session(user, room);
+  join_response(res, session);
+};
+
+var join_response = function(res, session){
   if (!session) {
     res.simpleJson(400, {error: "You do not have access to this room."});
     return;
   }
-  
   res.simpleJson(200, { session_id: session.session_id });
 };
+
+var join_room_request = function(req, res){
+  join_response(new Session(req.session.user, req.params.room_id));
+  req.session.destroy();
+}.pipeline(withSession);
 
 var part_request = function(req, res){
   req.session.destroy();

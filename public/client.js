@@ -45,9 +45,9 @@ function getUsers () {
   });
 }
 
-function sendJoin(username, password) {
+function sendJoin(username, password, room_id) {
   new Ajax.Request("/join", {
-    parameters: { username: username, password: password, room_id: STATUS.room_id},
+    parameters: room_id ? { room_id: room_id } : { username: username, password: password },
     method: 'get',
     onError: showLogin,
     onSuccess: joinSuccess
