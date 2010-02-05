@@ -11,6 +11,12 @@ document.observe("dom:loaded", function() {
   });
   showLogin();
   
+  // Room select
+  var rooms = $("rooms");
+  rooms.observe("change", function(event){
+    roomSwitch(rooms.value);
+  });
+  
   // Feedback screen  
   $("help-dialog").hide();
   $("close-feedback").observe("click", function(){$("help-dialog").hide();});

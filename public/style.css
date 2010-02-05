@@ -105,7 +105,6 @@ body {
 }
 
 #tools > h1 {
-  position:fixed; top:0px; left:0px;
   margin:0px 10px;
   font-size:116%;
   color:#fcf;
@@ -113,6 +112,11 @@ body {
   text-transform:lowercase;
   font-variant: small-caps;
   letter-spacing: 0.1em;
+  float:left;
+}
+
+#rooms {
+  float:left;
 }
 
 #help { 
