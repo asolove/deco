@@ -66,6 +66,10 @@ body {
 #help-dialog  input[type=submit] { display:block;}
 
 /* COLLAGE INTERFACE */
+#underlay {
+  position:absolute; left:0px; top:0px;
+  width:100%; height:100%;
+}
 #collage {
   position:absolute;
   left:50%; top:50%;
