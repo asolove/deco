@@ -35,3 +35,13 @@ users.find = function(username, password){
   }
   return false;
 };
+
+colors = ["#00a5f8", "#ffd503", "#8200f8", "#16ff91"];
+
+users.color_list = function(users){
+  var res = [];
+  for(var i=0,l=users.length;i<l;i++){
+    res.push([users[i].username, colors[i%colors.length]]);
+  }
+  return res;
+};

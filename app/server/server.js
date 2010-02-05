@@ -44,10 +44,26 @@ var Session = GLOBAL.Session = function(user, room){
   this.time = new Date();
   this.session_id = Math.floor(Math.random()*99999999).toString();
   sessions[this.session_id] = this;
+  room.addMessage({users: users.color_list(arguments.callee.users_in_room(room.id))});
 };
 
 Session.prototype.poke = function() { this.time = new Date(); };
-Session.prototype.destroy = function() { delete sessions[this.session_id]; };
+Session.prototype.destroy = function() { 
+  delete sessions[this.session_id]; 
+  this.room.addMessage({users: users.color_list(Session.users_in_room(this.room.id))});
+};
+
+Session.users_in_room = function(room_id){
+  res = [];
+  var session;
+  for(var session_id in sessions){
+    session = sessions[session_id];
+    if(session.room && session.room.id == room_id) {
+      res.push(session.user);
+    }
+  }
+  return res;
+};
 
 Session.timeout = function(){
   var cutoff = new Date() - SESSION_TIMEOUT, session = null;
@@ -113,7 +129,10 @@ var join_response = function(res, session){
     res.simpleJson(400, {error: "You do not have access to this room."});
     return;
   }
-  res.simpleJson(200, { session_id: session.session_id, rooms: rooms.list_for_user(session.user, session.room.id) });
+  res.simpleJson(200, { 
+    session_id: session.session_id, 
+    users: users.color_list(Session.users_in_room(session.room.id)),
+    rooms: rooms.list_for_user(session.user, session.room.id) });
 };
 
 var join_new_room_request = function(req, res){

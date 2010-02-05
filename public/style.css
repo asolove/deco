@@ -90,6 +90,7 @@ body {
 
 #collage img, #collage input {
   position:absolute;
+  border:3px solid #222;
 }
 
 /* TOOLS */
@@ -117,6 +118,21 @@ body {
 
 #rooms {
   float:left;
+}
+
+#badges {
+  float:left;
+  margin-left:10px;
+}
+
+.badge {
+  font-size:87%;
+  border:1px solid #ccc;
+  -moz-border-radius:4px;
+  margin-right:10px;
+  float:left;
+  padding:1px 5px;
+  color:#000;
 }
 
 #help { 

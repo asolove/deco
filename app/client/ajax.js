@@ -3,7 +3,7 @@ This file handles all direct communication with the server
 **/
 
 var STATUS = {
-  user: "",
+  username: "",
   session_id: 0,
   users: [],
   room_id: 0,
@@ -18,9 +18,6 @@ var STATUS = {
 function getUpdates() {
   if(STATUS.errors > 2)
     return;
-    
-  if(!STATUS.last_update_time)
-    getUsers();
 
   new Ajax.Request("/updates", {
     method: 'get',
@@ -39,17 +36,6 @@ function getUpdates() {
   });
 }
 
-// USERS
-// deprecated - haven't tested
-function getUsers () {
-  new Ajax.Request("/users", {
-    onSuccess: function(transport, data) {
-      if(STATUS != 'success') return;
-      STATUS.users = data.users;
-      updateUsersList();
-    }
-  });
-}
 
 // JOIN
 // Join the normal way and get your default room.
@@ -61,6 +47,7 @@ function sendJoin(username, password, room_id, name) {
     onError: showLogin,
     onSuccess: joinSuccess
   });
+  if(username) STATUS.username = username;
 }
 
 // PART

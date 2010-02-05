@@ -9,14 +9,12 @@ function joinSuccess (res) {
     return;
   }
   
-  
-  
-  STATUS.user = session.user;
   STATUS.session_id = session.session_id;
   
   getUpdates();
   showCollage();
   updateRooms(session.rooms);
+  updateUsers(session.users);
 }
 
 function updateRooms(room_list){
@@ -33,11 +31,30 @@ function updateRooms(room_list){
   return true;
 }
 
+function updateUsers(users){
+  console.log("updating users with", users);
+  STATUS.users = {};
+  var badges = $("badges"), badge;
+  
+  $A(badges.children).each(function(e){ e.remove();});
+  
+  users.each(function(user){
+    STATUS.users[user[0]] = user[1];
+    badge = new Element('span', { "class":"badge", "style":"background-color:"+user[1] }).insert(user[0]);
+    user[0] == STATUS.username ? badges.insert({top: badge}) : badges.insert({bottom:badge});
+  });
+  return true;
+}
+
 // 
 function collageUpdate(message){
   if(STATUS.last_update_time < message.time) STATUS.last_update_time = message.time;
+
+  if(message.users) {
+    updateUsers(message.users);
+    return true;
+  }
   
-  // FIXME: don't do if we already have this action
   if(message.id in STATUS.collageItems) {
     var input = STATUS.collageItems[message.id];
     updateCollageItem(input, message);
@@ -76,8 +93,17 @@ function showLoad(){ }
 // Globals
 S2.enableMultitouchSupport = true;
 
+
+
 // UI events
+function highlightCollageItem(node, username){
+  if(!node || !username || !(username in STATUS.users)) return false;
+  node.morph("border-color:"+STATUS.users[username], { duration: 1, position: 'parallel' })
+      .morph("border-color:#111", { duration: 1 });
+}
+
 function updateCollageItem(node, message){
+  highlightCollageItem(node, message.username);
   if("x" in message) {
     var x = message.x || node._x, y=message.y || node._y, s=message.s || 1, r=message.r || 0;   
     node.style.cssText += ';z-index:'+(z++)+';left:'+x+'px;top:'+y+'px;';
@@ -104,6 +130,7 @@ function positionAndAddElement(node, pos){
 function addCollageImage(id, src, pos){
   pos.x = pos.x || 0; pos.y = pos.y || 0; pos.s = pos.s || 1; pos.r = pos.r || 0;
   var image = new Element("img", {src:src, id: id ? id : Math.uuid(10), height: 200});
+  highlightCollageItem(image, pos.username);
   positionAndAddElement(image, pos);
   attachEvents(image, pos);
   if(id === undefined) {
@@ -118,6 +145,7 @@ function addCollageText(id, text, pos) {
   positionAndAddElement(input, pos);
   attachEvents(input, pos);
   input.focus();
+  highlightCollageItem(input, pos.username);
   
   input.observe("dblclick", function(event) { event.stop(); input.focus(); });
   input.observe("change", function(event){
