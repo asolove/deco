@@ -11,8 +11,8 @@ var events = require("events"),
     sys = require("sys"),
     url = require("url"),
     
-    Dirty = require("../lib/node-dirty/lib/dirty").Dirty,
-    router = require("../lib/node-router/node-router");
+    Dirty = require("../../vendor/node-dirty/lib/dirty").Dirty,
+    router = require("../../vendor/node-router/node-router");
 
 var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 15 * 60 * 1000;
