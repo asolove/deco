@@ -22,7 +22,9 @@
 [submodule "vendor/node-router"]
 	path = vendor/node-router
 	url = git://github.com/creationix/node-router.git
-
+[submodule "cookie"]
+	path = cookie
+	url = git@github.com:asolove/cookie-node.git
 [submodule "vendor/cookie"]
 	path = vendor/cookie
-	url = git://github.com/jed/cookie-node.git
+	url = git@github.com:asolove/cookie-node.git
