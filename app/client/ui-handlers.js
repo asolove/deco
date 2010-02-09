@@ -33,11 +33,17 @@ function updateRooms(room_list){
 
 function updateUsers(users){
   STATUS.users = {};
-  var badges = $("badges"), badge;
+  var badges = $("badges"), previousUsers = [], username, color, badge;
   
   $A(badges.children).each(function(e){ e.remove();});
   
   users.each(function(user){
+    username = user[0];
+    color = user[1];
+    
+    if(previousUsers.indexOf(username) >= 0) return false;
+    
+    previousUsers.push(user[0]);
     STATUS.users[user[0]] = user[1];
     badge = new Element('span', { "class":"badge", "style":"background-color:"+user[1] }).insert(user[0]);
     user[0] == STATUS.username ? badges.insert({top: badge}) : badges.insert({bottom:badge});
