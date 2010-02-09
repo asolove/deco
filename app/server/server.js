@@ -106,10 +106,9 @@ Function.prototype.pipeline = function(f){
 
 function withSession(req, res){
   var params = qs.parse(url.parse(req.url).query || ""),
-      session_id = req.getSecureCookie("session_id");
-  var session = sessions[session_id];
-  sys.debug("trying to access session: "+ session_id + " length: "+session_id.length);
-  sys.debug("session is: " + sys.inspect(session));
+      session_id = req.getSecureCookie("session_id"), session;
+  session_id = session_id.slice(0, session_id.length-2);
+  session = sessions[session_id];
   req.params = params;
   req.session = session;
   if(!session){
