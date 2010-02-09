@@ -123,12 +123,13 @@ var join_request = function(req, res){
       username = params.username, password = params.password,
       user = users.find(username, password),
       room_id = params.room_id || (user && user.room_ids[0]);
-  if(params.name && params.session_id){
+  if(params.name){
     join_new_room_request(req, res);
+    return;
   }
-  if("room_id" in params && params.session_id) {
+  if("room_id" in params) {
     join_room_request(req, res);
-    return false;
+    return;
   }
   if(!user){
     res.simpleJson(400, {error: "Username or password invalid."});
@@ -157,14 +158,14 @@ var join_new_room_request = function(req, res){
   users.save(req.session.user);
   
   var session = new Session(req.session.user, room);
-  join_response(res, session);
+  join_response(req, res, session);
   req.session.destroy();
 }.pipeline(withSession);
 
 var join_room_request = function(req, res){
   var session = new Session(req.session.user, rooms.find(req.params.room_id));
 
-  join_response(res, session);
+  join_response(req, res, session);
   req.session.destroy();
 }.pipeline(withSession);
 
