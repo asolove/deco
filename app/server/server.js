@@ -11,8 +11,12 @@ var events = require("events"),
     sys = require("sys"),
     url = require("url"),
     
+    cookie = require("../../vendor/cookie/cookie-node"),
     Dirty = require("../../vendor/node-dirty/lib/dirty").Dirty,
     router = require("../../vendor/node-router/node-router");
+
+cookie.secret = "ajsnkS(J#lsmslshsiafi;j*3hH:OIlakhfdp89gh;F#hp98#:FO)";
+
 
 var MESSAGE_BACKLOG = 200;
 var SESSION_TIMEOUT = 15 * 60 * 1000;
@@ -42,7 +46,7 @@ var Session = GLOBAL.Session = function(user, room){
   this.user = user;
   this.room = room;
   this.time = new Date();
-  this.session_id = Math.floor(Math.random()*99999999).toString();
+  this.session_id = Math.floor(Math.random()*9999999999).toString();
   sessions[this.session_id] = this;
   room.addMessage({users: users.color_list(arguments.callee.users_in_room(room.id))});
 };
@@ -102,10 +106,13 @@ Function.prototype.pipeline = function(f){
 
 function withSession(req, res){
   var params = qs.parse(url.parse(req.url).query || ""),
-      session_id=params.session_id, session=sessions[session_id];
+      session_id = req.getSecureCookie("session_id");
+  var session = sessions[session_id];
+  sys.debug("trying to access session: "+ session_id + " length: "+session_id.length);
+  sys.debug("session is: " + sys.inspect(session));
   req.params = params;
   req.session = session;
-  if(!req.session){
+  if(!session){
     res.simpleJson(400, {error: "Access denied: invalid session."});
     return false;
   }
@@ -129,16 +136,17 @@ var join_request = function(req, res){
     return;
   } 
   var room = rooms.find(room_id), session = new Session(user, room);
-  join_response(res, session);
+  join_response(req, res, session);
 };
 
-var join_response = function(res, session){
+var join_response = function(req, res, session){
   if (!session) {
     res.simpleJson(400, {error: "You do not have access to this room."});
     return;
   }
+  sys.debug("creating session:" + session.session_id);
+  res.setSecureCookie("session_id", session.session_id);
   res.simpleJson(200, { 
-    session_id: session.session_id, 
     users: users.color_list(Session.users_in_room(session.room.id)),
     rooms: rooms.list_for_user(session.user, session.room.id) });
 };
@@ -184,7 +192,6 @@ var send_request = function(req, res){
   var params = req.params;
   req.session.poke();
   var message = params; // Need to clean these
-  delete message["session_id"];
   message.username = req.session.user.username;
   message.time = new Date().getTime();
   req.session.room.addMessage(params);
@@ -193,9 +200,9 @@ var send_request = function(req, res){
 
 var feedback_request = function(req, res){
   var params = qs.parse(url.parse(req.url).query || ""),
-      session_id=params.session_id, session=sessions[session_id];
-  if(session_id){
-    params.username = sessions[session_id].user.username;
+      session_id=req.getSecureCookie("session_id"), session=sessions[session_id];
+  if(session){
+    params.username = session.user.username;
   }
   sys.debug("FEEDBACK: " + JSON.stringify(params));
 };
