@@ -22,6 +22,11 @@ task :make_js do
   concatenation = secretary.concatenation
   # Write the concatenation to disk
   concatenation.save_to("public/client.js")
+  
+  `java -jar vendor/yuicompressor/yuicompressor-2.4.2.jar public/client.js -o public/client.min.js`
+  `cp public/client.min.js public/client.min.js.tmp`
+  `gzip -9 public/client.min.js.tmp`
+  `mv public/client.min.js.tmp.gz public/client.min.js.gz`
 end
 
 task :repl do
