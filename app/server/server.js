@@ -257,34 +257,62 @@ function addResponseOptions(res){
   return res;
 }
 
+function index_request(req, res){
+  router.staticHandler(req, res, 'public/index.html');
+}
+
+function redirect_response(req, res){
+  var body = "<a href='http://www.on-deco.com/app'>This page has moved.</a>";
+  res.sendHeader(302, [ ["Location", "http://www.on-deco.com/app"],
+                        ["Content-Type", "application/json"],
+                        ["Content-Length", body.length] ]);
+  res.sendBody(body);
+  res.finish();
+}
+
+function error_response(req, res,e){
+  sys.debug('EXCEPTION: ' + e);
+  var body = "<h1>The server encountered an error.</h1><p>Notice has been sent to our support staff. <a href='http://www.on-deco.com/app'>Please log in again.</a></p>";
+  res.sendHeader(500, [ ["Content-Type", "text/plain"],
+                        ["Content-Length", body.length] ]);
+}
+
 var server = http.createServer(function(req, res) {
-  addResponseOptions(res);
-  
-  var path = url.parse(req.url).pathname.slice(1);
-  sys.puts("request for: "+path);
-  switch (path) {
-    case 'join':
-      join_request(req, res);
-      break;
-    case 'part':
-      part_request(req, res);
-      break;
-    case 'updates':
-      updates_request(req, res);
-      break;
-    case 'send':
-      send_request(req, res);
-      break;
-    case 'upload':
-      upload_request(req, res);
-      break;
-    case 'feedback':
-      feedback_request(req, res);
-      break;
-    default:
-      router.staticHandler(req, res, 'public/index.html');
-      break;
+  try {
+    addResponseOptions(res);
+
+    var path = url.parse(req.url).pathname.slice(1);
+    sys.puts("request for: "+path);
+    switch (path) {
+      case 'join':
+        join_request(req, res);
+        break;
+      case 'part':
+        part_request(req, res);
+        break;
+      case 'updates':
+        updates_request(req, res);
+        break;
+      case 'send':
+        send_request(req, res);
+        break;
+      case 'upload':
+        upload_request(req, res);
+        break;
+      case 'feedback':
+        feedback_request(req, res);
+        break;
+      case '':
+        index_request(req, res);
+        break;
+      default:
+        redirect_response(req, res);
+        break;
+    }
+  } catch (e) {
+    error_response(req, res, e);
   }
+  
 });
 
 server.listen(8001);
