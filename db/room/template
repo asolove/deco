@@ -1,7 +1,7 @@
-{"x":33,"y":183,"r":0,"s":1,"id":"tutorial1","src":"/img/tutorial1.png","type":"collage","username":"asolove","time":1265249820646,"_id":"ac165b430ec880226f434c68584d56a2"}
-{"x":220,"y":33,"r":0.1,"s":1,"id":"tutorial2","src":"/img/tutorial2.png","type":"collage","username":"asolove","time":1265249820646,"_id":"ac165b430ec880226f434c68584d56a2"}
-{"x":400,"y":333,"r":0.1,"s":1,"id":"tutorial3","src":"/img/tutorial3.png","type":"collage","username":"asolove","time":1265249820646,"_id":"ac165b430ec880226f434c68584d56a2"}
-{"x":400,"y":0,"r":0.1,"s":1,"id":"tutorial4","src":"/img/tutorial4.png","type":"collage","username":"asolove","time":1265249820646,"_id":"ac165b430ec880226f434c68584d56a2"}
+{"x":33,"y":183,"r":0,"s":1,"id":"tutorial1","src":"public/img/tutorial1.png","type":"collage","username":"asolove","time":1265249820646,"_id":"ac165b430ec880226f434c68584d56a2"}
+{"x":220,"y":33,"r":0.1,"s":1,"id":"tutorial2","src":"public/img/tutorial2.png","type":"collage","username":"asolove","time":1265249820646,"_id":"ac165b430ec880226f434c68584d56a2"}
+{"x":400,"y":333,"r":0.1,"s":1,"id":"tutorial3","src":"public/img/tutorial3.png","type":"collage","username":"asolove","time":1265249820646,"_id":"ac165b430ec880226f434c68584d56a2"}
+{"x":400,"y":0,"r":0.1,"s":1,"id":"tutorial4","src":"public/img/tutorial4.png","type":"collage","username":"asolove","time":1265249820646,"_id":"ac165b430ec880226f434c68584d56a2"}
 {"id":"tutorial2","x":300,"y":51,"r":0.1,"s":1,"type":"collage","username":"asolove","time":1265329636417,"_id":"c432087043f844e542d6207bc8005f43"}
 {"id":"tutorial2","x":301,"y":52,"r":-0.02437071343907221,"s":0.4353891471487689,"type":"collage","username":"asolove","time":1265329638952,"_id":"9cd39b8b5df179ec62118eceaf08fc67"}
 {"id":"tutorial1","x":134,"y":84,"r":0,"s":1,"type":"collage","username":"asolove","time":1265329639023,"_id":"2e2a27ae4f6d628a36ff69a641d636d2"}
