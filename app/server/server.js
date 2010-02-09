@@ -53,7 +53,7 @@ Session.current = function(){
     res.push(sessions[i].user.username);
   }
   return res;
-}
+};
 
 Session.prototype.poke = function() { this.time = new Date(); };
 Session.prototype.destroy = function() { 
@@ -280,12 +280,9 @@ var server = http.createServer(function(req, res) {
       break;
     case 'feedback':
       feedback_request(req, res);
-    case '':
-      router.staticHandler(req, res, 'public/index.html');
       break;
     default:
-      // FIXME: huge security issue
-      router.staticHandler(req, res, 'public/'+qs.unescape(path));
+      router.staticHandler(req, res, 'public/index.html');
       break;
   }
 });

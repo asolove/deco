@@ -15,7 +15,7 @@ function getUpdates() {
   if(STATUS.errors > 2)
     return;
 
-  new Ajax.Request("/updates", {
+  new Ajax.Request("updates", {
     method: 'get',
     parameters: {session_id: STATUS.session_id, since: STATUS.last_update_time },
     onError: function () {
@@ -34,7 +34,7 @@ function getUpdates() {
 
 
 function sendJoin(username, password, room_id, name) {
-  new Ajax.Request("/join", {
+  new Ajax.Request("join", {
     parameters: room_id ? { room_id: room_id, name: name, session_id : STATUS.session_id } : { username: username, password: password },
     method: 'get',
     onError: showLogin,
@@ -44,7 +44,7 @@ function sendJoin(username, password, room_id, name) {
 }
 
 function sendPart(user){
-  new Ajax.Request("/part", {
+  new Ajax.Request("part", {
     parameters: { session_id: STATUS.session_id },
     method: 'get'
   });
@@ -53,7 +53,7 @@ function sendPart(user){
 function sendCollageUpdate(message){
   message.session_id = STATUS.session_id;
   message["type"] = "collage";
-  new Ajax.Request("/send", {
+  new Ajax.Request("send", {
     parameters: message,
     method: 'get'
   });
