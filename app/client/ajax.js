@@ -12,7 +12,6 @@ var STATUS = {
   collageItems: {}
 };
 
-
 // UPDATES
 function getUpdates() {
   if(STATUS.errors > 2)
@@ -20,7 +19,7 @@ function getUpdates() {
 
   new Ajax.Request("updates", {
     method: 'get',
-    parameters: { since: STATUS.last_update_time },
+    parameters: { session_id: STATUS.session_id, since: STATUS.last_update_time },
     onError: function () {
       STATUS.errors += 1;
       addMessage("", "There was an error contacting the server.", new Date(), "error");
@@ -41,7 +40,7 @@ function getUpdates() {
 // Or use your existing session to join a new room.
 function sendJoin(username, password, room_id, name) {
   new Ajax.Request("join", {
-    parameters: room_id ? { room_id: room_id, name: name } : { username: username, password: password },
+    parameters: room_id ? { session_id: STATUS.session_id, room_id: room_id, name: name } : { username: username, password: password },
     method: 'get',
     onError: showLogin,
     onSuccess: joinSuccess
@@ -51,12 +50,13 @@ function sendJoin(username, password, room_id, name) {
 
 // PART
 function sendPart(user){
-  new Ajax.Request("part", { method: 'get' });
+  new Ajax.Request("part", { parameters: { session_id: STATUS.session_id}, method: 'get' });
 }
 
 // SEND
 function sendCollageUpdate(message){
   message["type"] = "collage";
+  message.session_id = STATUS.session_id;
   new Ajax.Request("send", {
     parameters: message,
     method: 'get'
@@ -82,7 +82,7 @@ function uploadImageFile(file, id) {
   result += crlf;
   result += dashes + boundary + dashes + crlf;
   
-  xhr.open("POST", "upload?id="+id);
+  xhr.open("POST", "upload?session_id="+STATUS.session_id+"&id="+id);
   xhr.overrideMimeType('text/plain; charset=x-user-defined-binary');
   
   xhr.setRequestHeader('content-type', 'multipart/form-data; boundary=' + boundary);

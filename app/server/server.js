@@ -11,11 +11,9 @@ var events = require("events"),
     sys = require("sys"),
     url = require("url"),
     
-    cookie = require("../../vendor/cookie/cookie-node"),
     Dirty = require("../../vendor/node-dirty/lib/dirty").Dirty,
     router = require("../../vendor/node-router/node-router");
 
-cookie.secret = "ajsnkS(J#lsmslshsiafi;j*3hH:OIlakhfdp89gh;F#hp98#:FO)";
 
 
 var MESSAGE_BACKLOG = 200;
@@ -106,9 +104,7 @@ Function.prototype.pipeline = function(f){
 
 function withSession(req, res){
   var params = qs.parse(url.parse(req.url).query || ""),
-      session_id = req.getSecureCookie("session_id"), session;
-  session_id = session_id.slice(0, session_id.length-2);
-  session = sessions[session_id];
+      session_id = params.session_id, session=sessions[session_id];
   req.params = params;
   req.session = session;
   if(!session){
@@ -144,9 +140,8 @@ var join_response = function(req, res, session){
     res.simpleJson(400, {error: "You do not have access to this room."});
     return;
   }
-  sys.debug("creating session:" + session.session_id);
-  res.setSecureCookie("session_id", session.session_id);
   res.simpleJson(200, { 
+    session_id: session.session_id,
     users: users.color_list(Session.users_in_room(session.room.id)),
     rooms: rooms.list_for_user(session.user, session.room.id) });
 };
@@ -192,6 +187,7 @@ var send_request = function(req, res){
   var params = req.params;
   req.session.poke();
   var message = params; // Need to clean these
+  delete message["session_id"];
   message.username = req.session.user.username;
   message.time = new Date().getTime();
   req.session.room.addMessage(params);
@@ -200,7 +196,7 @@ var send_request = function(req, res){
 
 var feedback_request = function(req, res){
   var params = qs.parse(url.parse(req.url).query || ""),
-      session_id=req.getSecureCookie("session_id"), session=sessions[session_id];
+      session_id=params.session_id, session=sessions[session_id];
   if(session){
     params.username = session.user.username;
   }
@@ -228,7 +224,7 @@ var upload_request = function(req, res) {
     });
     
     part.addListener("complete", function(){
-      sys.debug("file available at: public/img/"+filename)
+      sys.debug("file available at: public/img/"+filename);
       req.session.room.addMessage(
         { time: new Date().getTime()
         , username: req.session.user.username
