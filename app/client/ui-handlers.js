@@ -188,8 +188,9 @@ function attachEvents(node, pos){
     var pO = node.positionedOffset();
     node._panX = 0; node._panY = 0;
     node._x = pO.left; node._y = pO.top;
-    
-    sendCollageUpdate({id:node.id, x: node._x, y: node._y, r: node._r, s: node._s});
+    var message = {id:node.id, x: node._x, y: node._y, r: node._r, s: node._s};
+    if("value" in node) message["text"] = node.value;    
+    sendCollageUpdate(message);
   });
 }
 
