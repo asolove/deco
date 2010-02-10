@@ -14,7 +14,6 @@ function joinSuccess (res) {
   getUpdates();
   showCollage();
   updateRooms(session.rooms);
-  updateUsers(session.users);
 }
 
 function updateRooms(room_list){
@@ -104,14 +103,11 @@ S2.enableMultitouchSupport = true;
 function highlightCollageItem(node, username){
   if(!node || !username || !(username in STATUS.users)) return false;
   node.morph("border-color:"+STATUS.users[username], { duration: 1, position: 'parallel' })
-      .morph("border-color:#111", { duration: 1, after: function() {node.style.cssText += "border-color:transparent;"} });
+      .morph("border-color:#111", { duration: 1, after: function() {node.style.cssText += "border-color:transparent;";} });
 }
 
 function updateCollageItem(node, message){
-  if("_removed" in message) {
-    console.log("updating node that was removed", node);
-    return node._removed ? undefined : node.remove();
-  }
+  if("_removed" in message) return node._removed ? undefined : node.remove();
   highlightCollageItem(node, message.username);
   if("x" in message) {
     var x = message.x || node._x, y=message.y || node._y, s=message.s || 1, r=message.r || 0;   

@@ -200,7 +200,6 @@ function joinSuccess (res) {
   getUpdates();
   showCollage();
   updateRooms(session.rooms);
-  updateUsers(session.users);
 }
 
 function updateRooms(room_list){
@@ -286,7 +285,7 @@ S2.enableMultitouchSupport = true;
 function highlightCollageItem(node, username){
   if(!node || !username || !(username in STATUS.users)) return false;
   node.morph("border-color:"+STATUS.users[username], { duration: 1, position: 'parallel' })
-      .morph("border-color:#111", { duration: 1, after: function() {node.style.cssText += "border-color:transparent;"} });
+      .morph("border-color:#111", { duration: 1, after: function() {node.style.cssText += "border-color:transparent;";} });
 }
 
 function updateCollageItem(node, message){

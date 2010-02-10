@@ -142,7 +142,6 @@ var join_response = function(req, res, session){
   }
   res.simpleJson(200, { 
     session_id: session.session_id,
-    users: users.color_list(Session.users_in_room(session.room.id)),
     rooms: rooms.list_for_user(session.user, session.room.id) });
 };
 
@@ -285,7 +284,6 @@ var server = http.createServer(function(req, res) {
     addResponseOptions(res);
 
     var path = url.parse(req.url).pathname.slice(1);
-    sys.puts("request for: "+path);
     switch (path) {
       case 'join':
         join_request(req, res);
