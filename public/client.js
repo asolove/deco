@@ -23,8 +23,12 @@ function getUpdates() {
     },
     onSuccess: function (res) {
       STATUS.errors = 0;
-      var data = JSON.parse(res.responseText);
-      if(data && data.messages) data.messages.each(collageUpdate);
+      try{
+        var data = JSON.parse(res.responseText);
+        if(data && data.messages) data.messages.each(collageUpdate);
+      }catch(e){
+
+      }
       getUpdates();
     }
   });
