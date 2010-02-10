@@ -244,7 +244,7 @@ function collageUpdate(message){
   if(message.id in STATUS.collageItems) {
     var input = STATUS.collageItems[message.id];
     updateCollageItem(input, message);
-  } else {
+  } else if(!("_removed" in message)) {
     if(message.text) {
       addCollageText(message.id, message.text, message);
     } else {
@@ -282,10 +282,14 @@ S2.enableMultitouchSupport = true;
 function highlightCollageItem(node, username){
   if(!node || !username || !(username in STATUS.users)) return false;
   node.morph("border-color:"+STATUS.users[username], { duration: 1, position: 'parallel' })
-      .morph("border-color:#111", { duration: 1 });
+      .morph("border-color:#111", { duration: 1, after: function() {node.style.cssText += "border-color:transparent;"} });
 }
 
 function updateCollageItem(node, message){
+  if("_removed" in message) {
+    console.log("updating node that was removed", node);
+    return node._removed ? undefined : node.remove();
+  }
   highlightCollageItem(node, message.username);
   if("x" in message) {
     var x = message.x || node._x, y=message.y || node._y, s=message.s || 1, r=message.r || 0;
@@ -296,7 +300,6 @@ function updateCollageItem(node, message){
     node._rotation = r; node._r = r;
     node._scale = s; node._scale = s;
   }
-  if(message._removed) node.remove();
   if(message.text) node.value = message.text;
   if(message.src) node.src = message.src;
   return false;
@@ -361,6 +364,7 @@ function attachEvents(node, pos){
   });
 
   node.observe("manipulate:end", function(event) {
+    if(node._removed) return;
     var pO = node.positionedOffset();
     node._panX = 0; node._panY = 0;
     node._x = pO.left; node._y = pO.top;
