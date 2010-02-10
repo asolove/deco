@@ -22,7 +22,7 @@ document.observe("dom:loaded", function() {
   $("close-feedback").observe("click", function(){$("help-dialog").hide();});
   $("help-dialog").observe("submit", function(event){
     event.stop();
-    new Ajax.Request("/feedback", {
+    new Ajax.Request("feedback", {
       method: 'get',
       parameters: {session_id: STATUS.session_id, comments: $("comments").value }
     });
