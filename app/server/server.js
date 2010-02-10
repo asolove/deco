@@ -218,7 +218,7 @@ var upload_request = function(req, res) {
     // FIXME: get multiple id's on upload, check unique/safe file name
     var openPromise = null, item_id = req.params.id, filename = item_id + path.extname(part.filename);
     part.addListener("body", function(chunk) {    
-        if (!openPromise) openPromise = posix.open("./public/img/" + filename, process.O_CREAT | process.O_WRONLY, 0600);
+        if (!openPromise) openPromise = posix.open("./public/img/" + filename, process.O_CREAT | process.O_WRONLY, 0655);
         openPromise.addCallback(function(fd) {
           req.pause();
           posix.write(fd, chunk).addCallback(function() {
@@ -228,12 +228,12 @@ var upload_request = function(req, res) {
     });
     
     part.addListener("complete", function(){
-      sys.debug("File now available at: /img/"+filename);
+      sys.debug("file available at: public/img/"+filename)
       req.session.room.addMessage(
         { time: new Date().getTime()
         , username: req.session.user.username
         , id: item_id
-        , src: "/img/"+filename });
+        , src: "public/img/"+filename });
         
       openPromise.addCallback(function(fd){
         posix.close(fd).addCallback(function() {
