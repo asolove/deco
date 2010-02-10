@@ -12,8 +12,7 @@ var STATUS = {
 
 function updateError(){
   STATUS.errors += 1;
-  console.log("update error");
-  setTimeout(getUpdates, 1000);
+  setTimeout(getUpdates, 500);
 }
 
 function getUpdates() {
