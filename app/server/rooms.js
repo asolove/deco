@@ -52,11 +52,20 @@ rooms.valid = function(room){
 };
 
 Room.prototype.allMessages = function(){
-  return this.messages.filter(function(){return true;});
+  var messages = this.messages, res=[];
+  for(var id in messages._ids){
+    res.push(messages.get(id));
+  }
+  return res;
 };
 
 Room.prototype.addMessage = function(message){
-  this.messages.add(message);
+  if(message.id){
+    var old = this.messages.get(message.id);
+    this.messages.set(message.id, process.mixin(old, message));
+  } else {
+    this.messages.add(message);
+  }
   this.callbacks.forEach(function(c){c.callback([message]);});
 };
 

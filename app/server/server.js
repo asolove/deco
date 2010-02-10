@@ -46,7 +46,7 @@ var Session = GLOBAL.Session = function(user, room){
   this.time = new Date();
   this.session_id = Math.floor(Math.random()*9999999999).toString();
   sessions[this.session_id] = this;
-  room.addMessage({users: users.color_list(arguments.callee.users_in_room(room.id))});
+  room.addMessage({id:"users", users: users.color_list(arguments.callee.users_in_room(room.id))});
 };
 
 Session.current = function(){
@@ -60,7 +60,7 @@ Session.current = function(){
 Session.prototype.poke = function() { this.time = new Date(); };
 Session.prototype.destroy = function() { 
   delete sessions[this.session_id]; 
-  this.room.addMessage({users: users.color_list(Session.users_in_room(this.room.id))});
+  this.room.addMessage({id:"users", users: users.color_list(Session.users_in_room(this.room.id))});
 };
 
 Session.users_in_room = function(room_id){
