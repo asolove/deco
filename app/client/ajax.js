@@ -4,6 +4,7 @@ This file handles all direct communication with the server
 
 var STATUS = {
   username: "",
+  logged_in: false,
   users: [],
   room_id: 0,
   rooms: [],
@@ -13,6 +14,11 @@ var STATUS = {
 };
 
 // UPDATES
+function updateError(){
+  STATUS.errors += 1;
+  setTimeout(getUpdates, 500);
+}
+
 function getUpdates() {
   if(STATUS.errors > 2)
     return;
@@ -20,19 +26,14 @@ function getUpdates() {
   new Ajax.Request("updates", {
     method: 'get',
     parameters: { session_id: STATUS.session_id, since: STATUS.last_update_time },
-    onError: function () {
-      STATUS.errors += 1;
-      addMessage("", "There was an error contacting the server.", new Date(), "error");
-      setTimeout(getUpdates, 1000);
-    },
+    onFailure: updateError,
+    onException: updateError,
     onSuccess: function (res) {
       STATUS.errors = 0;
       try{
         var data = JSON.parse(res.responseText);
         if(data && data.messages) data.messages.each(collageUpdate);
-      }catch(e){
-        
-      }
+      }catch(e){}
       getUpdates();
     }
   });

@@ -1,6 +1,7 @@
 
 var STATUS = {
   username: "",
+  logged_in: false,
   users: [],
   room_id: 0,
   rooms: [],
@@ -9,6 +10,12 @@ var STATUS = {
   collageItems: {}
 };
 
+function updateError(){
+  STATUS.errors += 1;
+  console.log("update error");
+  setTimeout(getUpdates, 1000);
+}
+
 function getUpdates() {
   if(STATUS.errors > 2)
     return;
@@ -16,19 +23,14 @@ function getUpdates() {
   new Ajax.Request("updates", {
     method: 'get',
     parameters: { session_id: STATUS.session_id, since: STATUS.last_update_time },
-    onError: function () {
-      STATUS.errors += 1;
-      addMessage("", "There was an error contacting the server.", new Date(), "error");
-      setTimeout(getUpdates, 1000);
-    },
+    onFailure: updateError,
+    onException: updateError,
     onSuccess: function (res) {
       STATUS.errors = 0;
       try{
         var data = JSON.parse(res.responseText);
         if(data && data.messages) data.messages.each(collageUpdate);
-      }catch(e){
-
-      }
+      }catch(e){}
       getUpdates();
     }
   });
@@ -197,7 +199,10 @@ function joinSuccess (res) {
 
   STATUS.session_id = session.session_id;
 
-  getUpdates();
+  if(!STATUS.logged_in)
+    getUpdates();
+  STATUS.logged_in = true;
+
   showCollage();
   updateRooms(session.rooms);
 }
@@ -289,10 +294,7 @@ function highlightCollageItem(node, username){
 }
 
 function updateCollageItem(node, message){
-  if("_removed" in message) {
-    console.log("updating node that was removed", node);
-    return node._removed ? undefined : node.remove();
-  }
+  if("_removed" in message) return node._removed ? undefined : node.remove();
   highlightCollageItem(node, message.username);
   if("x" in message) {
     var x = message.x || node._x, y=message.y || node._y, s=message.s || 1, r=message.r || 0;

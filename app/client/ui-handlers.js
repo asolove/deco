@@ -11,7 +11,10 @@ function joinSuccess (res) {
   
   STATUS.session_id = session.session_id;
   
-  getUpdates();
+  if(!STATUS.logged_in)
+    getUpdates();
+  STATUS.logged_in = true;
+  
   showCollage();
   updateRooms(session.rooms);
 }
